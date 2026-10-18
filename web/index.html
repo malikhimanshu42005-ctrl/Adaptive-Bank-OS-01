@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Bank OS — Mission Control Ledger</title>
+    <meta name="description" content="Mission Control Dashboard for Adaptive Bank OS - High Performance MLFQ CPU Scheduling, Havender Concurrency Control, and Predictive Contention Mitigation.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="ambient-glow glow-emerald"></div>
+    <div class="ambient-glow glow-cyan"></div>
+    <div class="ambient-glow glow-purple"></div>
+
+    <header class="top-nav">
+        <div class="brand">
+            <div class="radar-container" id="radar-indicator" title="System Active">
+                <div class="radar-sweep"></div>
+                <div class="radar-dot"></div>
+            </div>
+            <div class="brand-text">
+                <h1>ADAPTIVE BANK OS <span class="badge-v">v2.4 PRO</span></h1>
+                <p class="subtitle">AUTONOMOUS CONCURRENCY CONTROL & MLFQ KERNEL LEDGER</p>
+            </div>
+        </div>
+
+        <div class="header-controls">
+            <div class="mode-toggle-card">
+                <span class="mode-label">ENGINE MODE:</span>
+                <label class="switch" id="mode-switch-wrapper">
+                    <input type="checkbox" id="mode-toggle" checked>
+                    <span class="slider round"></span>
+                </label>
+                <span class="mode-badge" id="mode-display">ADAPTIVE MD-ACC</span>
+            </div>
+
+            <div class="control-actions">
+                <button class="btn btn-control" id="btn-pause-resume" title="Pause or Resume Simulation">
+                    <span id="pause-icon">⏸</span> <span id="pause-text">PAUSE</span>
+                </button>
+                <div class="speed-control" title="Adjust Execution Delay">
+                    <span class="speed-label">SPEED:</span>
+                    <input type="range" id="speed-slider" min="0" max="10000" step="200" value="1000">
+                    <span id="speed-val">1.0ms</span>
+                </div>
+                <button class="btn btn-secondary" id="btn-export-json" title="Export Transitions Log to JSON">
+                    📥 EXPORT LOGS
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- TOP ROW: HERO METRICS PANEL -->
+        <section class="panel metrics-panel" id="metrics-panel">
+            <div class="metric-card" id="card-tps">
+                <div class="metric-header">
+                    <span class="metric-title">THROUGHPUT (TPS)</span>
+                    <span class="metric-icon">⚡</span>
+                </div>
+                <div class="metric-value-row">
+                    <span class="metric-value" id="val-tps">0.0</span>
+                    <span class="metric-unit">tx/s</span>
+                </div>
+                <canvas id="tps-sparkline" width="180" height="40"></canvas>
+            </div>
+
+            <div class="metric-card" id="card-contention">
+                <div class="metric-header">
+                    <span class="metric-title">CONTENTION SCORE</span>
+                    <span class="metric-badge level-low" id="contention-badge">LOW</span>
+                </div>
+                <div class="metric-value-row">
+                    <span class="metric-value" id="val-contention-score">0.04</span>
+                    <span class="metric-unit">Ct index</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill fill-cyan" id="contention-bar" style="width: 8%;"></div>
+                </div>
+            </div>
+
+            <div class="metric-card" id="card-aborts">
+                <div class="metric-header">
+                    <span class="metric-title">ABORT RATE (AR)</span>
+                    <span class="metric-sub" id="val-abort-sub">0 aborts</span>
+                </div>
+                <div class="metric-value-row">
+                    <span class="metric-value" id="val-abort-rate">0.00%</span>
+                    <span class="metric-unit">window</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill fill-rose" id="abort-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div class="metric-card" id="card-commits">
+                <div class="metric-header">
+                    <span class="metric-title">ACID TRANSACTIONS</span>
+                    <span class="metric-icon">🔒</span>
+                </div>
+                <div class="metric-dual-stats">
+                    <div class="stat-col">
+                        <span class="stat-lbl">COMMITS</span>
+                        <span class="stat-val text-emerald" id="val-commits">0</span>
+                    </div>
+                    <div class="stat-col">
+                        <span class="stat-lbl">ROLLBACKS</span>
+                        <span class="stat-val text-amber" id="val-rollbacks">0</span>
+                    </div>
+                    <div class="stat-col">
+                        <span class="stat-lbl">TICK</span>
+                        <span class="stat-val text-cyan" id="val-tick">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card" id="card-predictive-ml">
+                <div class="metric-header">
+                    <span class="metric-title">PREDICTIVE ML FORECAST</span>
+                    <span class="metric-badge regime-badge" id="regime-badge">NORMAL</span>
+                </div>
+                <div class="metric-value-row">
+                    <span class="metric-value text-purple" id="val-forecast">0.03</span>
+                    <span class="metric-unit">Ct+30ms</span>
+                </div>
+                <div class="ml-meta">
+                    <span id="val-ml-latency">Latency: 1.2µs</span>
+                    <span id="val-quota-status">Quota: Normal</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- MIDDLE ROW: CPU EXECUTION & MLFQ PIPELINE -->
+        <section class="panel-row middle-row">
+            <!-- CPU CORE EXECUTION WINDOW -->
+            <div class="panel cpu-panel" id="cpu-core-window">
+                <div class="panel-header">
+                    <h2><span class="dot-pulse"></span> CPU CORE 0 & CONCURRENCY LOCK ENGINE</h2>
+                    <span class="panel-tag" id="cpu-status-tag">IDLE</span>
+                </div>
+                <div class="cpu-body">
+                    <div class="active-proc-card" id="active-proc-view">
+                        <div class="active-proc-row">
+                            <span class="active-pid-label">ACTIVE PID:</span>
+                            <span class="active-pid-val" id="cpu-pid">NONE</span>
+                            <span class="type-pill" id="cpu-type">-</span>
+                        </div>
+                        <div class="proc-details-grid">
+                            <div class="detail-box">
+                                <span class="d-label">Transfer Amount</span>
+                                <span class="d-val" id="cpu-amount">₹0.00</span>
+                            </div>
+                            <div class="detail-box">
+                                <span class="d-label">From Account</span>
+                                <span class="d-val text-cyan" id="cpu-from">-</span>
+                            </div>
+                            <div class="detail-box">
+                                <span class="d-label">To Account</span>
+                                <span class="d-val text-emerald" id="cpu-to">-</span>
+                            </div>
+                            <div class="detail-box">
+                                <span class="d-label">Burst Cycles Left</span>
+                                <span class="d-val text-amber" id="cpu-burst">-</span>
+                            </div>
+                        </div>
+                        <div class="burst-progress-container">
+                            <div class="burst-progress-label">
+                                <span>EXECUTION PROGRESS</span>
+                                <span id="cpu-burst-pct">0%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill fill-emerald" id="cpu-burst-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="held-locks-row">
+                            <span class="locks-label">HAVENDER MONOTONIC LOCKS HELD:</span>
+                            <div class="locks-pills-list" id="cpu-locks-list">
+                                <span class="lock-pill empty">None</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MLFQ PIPELINE VISUALIZER -->
+            <div class="panel mlfq-panel" id="mlfq-pipeline">
+                <div class="panel-header">
+                    <h2>⚙️ MLFQ PIPELINE VISUALIZER</h2>
+                    <span class="panel-sub" id="mlfq-aging-info">Aging threshold: X=50 ticks</span>
+                </div>
+                <div class="mlfq-tracks">
+                    <!-- Queue 1 Track -->
+                    <div class="queue-track">
+                        <div class="queue-header">
+                            <div class="queue-title-group">
+                                <span class="queue-tag tag-q1">QUEUE 1</span>
+                                <span class="queue-algo">SRTF High Priority (Interactive UPI/ATM)</span>
+                            </div>
+                            <span class="queue-count" id="q1-count">0 items</span>
+                        </div>
+                        <div class="queue-pids-scroll" id="q1-pids-container">
+                            <span class="placeholder-text">Queue is empty</span>
+                        </div>
+                    </div>
+
+                    <!-- Queue 2 Track -->
+                    <div class="queue-track">
+                        <div class="queue-header">
+                            <div class="queue-title-group">
+                                <span class="queue-tag tag-q2">QUEUE 2</span>
+                                <span class="queue-algo" id="q2-quantum-label">Round Robin Batch (Salary Q=5 ticks)</span>
+                            </div>
+                            <span class="queue-count" id="q2-count">0 items</span>
+                        </div>
+                        <div class="queue-pids-scroll" id="q2-pids-container">
+                            <span class="placeholder-text">Queue is empty</span>
+                        </div>
+                    </div>
+
+                    <!-- Waiting / Lock Contention Track -->
+                    <div class="queue-track track-waiting">
+                        <div class="queue-header">
+                            <div class="queue-title-group">
+                                <span class="queue-tag tag-wait">WAITING POOL</span>
+                                <span class="queue-algo">Lock Contention Backoff & Timeout Gate (Tw=20)</span>
+                            </div>
+                            <span class="queue-count" id="wait-count">0 items</span>
+                        </div>
+                        <div class="queue-pids-scroll" id="wait-pids-container">
+                            <span class="placeholder-text">No processes waiting</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOTTOM ROW: SEARCHABLE PCB TABLE & LIVE TRANSITIONS FEED -->
+        <section class="panel-row bottom-row">
+            <!-- SEARCHABLE PCB TABLE -->
+            <div class="panel table-panel" id="pcb-table-panel">
+                <div class="panel-header">
+                    <h2>📋 PROCESS CONTROL BLOCK (PCB) MONITOR</h2>
+                    <div class="table-filters">
+                        <input type="text" id="pcb-search-input" placeholder="Search PID or Account ID..." class="input-search">
+                        <select id="pcb-filter-status" class="select-filter">
+                            <option value="ALL">All States</option>
+                            <option value="RUNNING">RUNNING</option>
+                            <option value="READY">READY</option>
+                            <option value="WAITING">WAITING</option>
+                            <option value="TERMINATED">TERMINATED</option>
+                            <option value="TERMINATED_FAILED">TERMINATED_FAILED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="pcb-table" id="pcb-table">
+                        <thead>
+                            <tr>
+                                <th>PID</th>
+                                <th>TYPE</th>
+                                <th>STATE</th>
+                                <th>QUEUE</th>
+                                <th>FROM → TO</th>
+                                <th>AMOUNT</th>
+                                <th>BURST</th>
+                                <th>RETRIES</th>
+                                <th>BACKOFF</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pcb-tbody">
+                            <tr>
+                                <td colspan="9" class="text-center">Awaiting simulation data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LIVE TRANSITIONS FEED -->
+            <div class="panel feed-panel" id="transitions-panel">
+                <div class="panel-header">
+                    <h2>⚡ REAL-TIME STATE TRANSITION STREAM</h2>
+                    <span class="pulse-indicator" title="Live stream">REC</span>
+                </div>
+                <div class="transitions-feed" id="transitions-feed">
+                    <div class="feed-item">
+                        <span class="f-tick">[Tick 0]</span>
+                        <span class="f-text">Simulation kernel initialized. Awaiting engine dispatch...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-left">
+            <span>Adaptive Bank OS Architecture</span> • <span>Havender Monotonic Lock Ordering</span> • <span>MLFQ Anti-Starvation</span>
+        </div>
+        <div class="footer-right" id="footer-storage-info">
+            In-Memory ACID Ledger with MySQL Connector Fallback
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
