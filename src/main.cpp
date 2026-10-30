@@ -18,6 +18,9 @@ void sig_handler(int sig) {
 int main(int argc, char* argv[]) {
     std::signal(SIGINT, sig_handler);
     std::signal(SIGTERM, sig_handler);
+#ifdef SIGPIPE
+    std::signal(SIGPIPE, SIG_IGN);
+#endif
 
     int port = 8080;
     size_t workload_size = 176000;
