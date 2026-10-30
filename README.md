@@ -204,15 +204,23 @@ The workload generator ([`include/workload_generator.hpp`](include/workload_gene
 
 ## Web Dashboard
 
-The real-time web dashboard (`web/`) provides:
+The real-time mission control web dashboard (`web/`) features a clean, project-based engineering console design:
 
-- **Live simulation metrics** — tick counter, TPS, total commits/rollbacks, active locks
-- **Process state visualization** — currently running process, queue depths, waiting pool
-- **Telemetry charts** — conflict rate, abort rate, queue length, ML-predicted contention
-- **Queue inspection** — Q1 (SRTF), Q2 (Round Robin), and waiting pool PIDs
-- **Control panel** — pause/resume, speed adjustment, comparison mode toggle
-- **State transition log** — recent process state changes with reasons
-- **Data export** — download transition history as JSON
+- **Interactive Running Execution Pipeline Diagram** — 5 interactive stages representing end-to-end processing with click-to-inspect theorem modals:
+  1. *Scheduled Ingest DB* (Arranged workload batches)
+  2. *OS Kernel Scheduler* (MLFQ: Q1 SRTF + Q2 Round Robin + Aging)
+  3. *2PL Concurrency Control* (Strict Two-Phase Locking + Havender Monotonic Ordering)
+  4. *ACID & Atomicity Engine* (All-or-Nothing validation & WAL Stream)
+  5. *Core Bank Accounts DB* (12 managed accounts ledger)
+- **5 Dedicated Professional Tabbed Pages**:
+  1. *Architecture & Pipeline*: Live interactive diagram, CPU Core Dispatcher (always active), and in-flight transmission bridge.
+  2. *Scheduled DB ➔ Bank DB*: Real-time side-by-side view showing chronologically arranged pending transactions dispatched to update individual bank accounts, plus the **Official Bank Database Transmission & Settlement Log** with export.
+  3. *Oscilloscope & Benchmarks*: High-resolution dual-wave oscilloscope (Throughput & Contention) and **5 Clickable Live Benchmark Scenarios** (`Flash Sale`, `Salary Burst`, `Hotspot Contention`, `Insufficient Funds`, `Baseline Shootout`).
+  4. *DBMS (2PL & ACID)*: Growing/Shrinking phase telemetry, Havender monotonic ordering proof, ACID pillars, and live WAL stream with LSNs.
+  5. *OS Kernel (MLFQ & PCB)*: Queue 1 (SRTF), Queue 2 (Round Robin), Waiting Pool, Aging Promotions, and searchable PCB lifecycle inspector.
+- **Plain-Language Explanations on Every Block**: Simple, accessible 1-2 sentence callouts explaining exactly what each subsystem does.
+- **Guaranteed Non-Empty Display**: CPU Dispatcher and MLFQ queues are guaranteed never empty at any time for presentations and viva.
+- **Official Bank Database Transmission Log**: Full audit stream verifying 2PL lock verification, ACID balance check, WAL LSN, and balances before/after settlement, exportable to JSON.
 
 ---
 
@@ -221,9 +229,15 @@ The real-time web dashboard (`web/`) provides:
 | Endpoint | Method | Description |
 |---|---|---|
 | `/api/status` | `GET` | Tick count, queue sizes, TPS, commits, rollbacks, comparison mode |
-| `/api/state` | `GET` | Full simulation state: running process, queues, telemetry, ML forecast, balances |
+| `/api/state` | `GET` | Consolidated simulation state: CPU process, queues, telemetry, ML forecast, 2PL stats, ACID metrics, accounts, WAL |
 | `/api/queues` | `GET` | Detailed queue contents (Q1, Q2, waiting pool) |
-| `/api/transitions?limit=N` | `GET` | Recent state transition records (default: 100) |
+| `/api/accounts` | `GET` | 12 Bank accounts with live balances, lock status, types, debits, credits |
+| `/api/wal?limit=N` | `GET` | Write-Ahead Log records with sequence numbers, operations, balances (default: 30) |
+| `/api/scheduled?limit=N` | `GET` | Upcoming scheduled transactions awaiting dispatch from workload (default: 20) |
+| `/api/bank-db-log?limit=N` | `GET` | Official Bank Database transmission & settlement records with 2PL/ACID verification (default: 50) |
+| `/api/bank-db-log/export` | `GET` | Download official bank database transmission log as `bank_db_transmission_log.json` |
+| `/api/benchmark/trigger?scenario=X` | `POST` | Trigger live benchmark scenarios (`flash_sale`, `salary_burst`, `hotspot_contention`, `insufficient_funds`, `baseline_shootout`) |
+| `/api/transitions?limit=N` | `GET` | Recent state transition records with detailed kernel reason strings (default: 100) |
 | `/api/comparison-mode` | `POST` | Toggle between `ADAPTIVE_MDACC` and `STANDARD_BASELINE` |
 | `/api/control/pause` | `GET` | Pause simulation |
 | `/api/control/resume` | `GET` | Resume simulation |

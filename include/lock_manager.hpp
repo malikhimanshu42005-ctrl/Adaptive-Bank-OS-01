@@ -24,6 +24,12 @@ private:
     // Configurable bounded wait timeout (Tw)
     int wait_timeout_ticks_ = 20;
 
+    // Statistics
+    long long total_acquisitions_ = 0;
+    long long total_conflicts_ = 0;
+    long long total_releases_ = 0;
+    long long total_monotonic_sorts_ = 0;
+
     mutable std::mutex lock_mgr_mutex_;
 
 public:
@@ -53,6 +59,7 @@ public:
     // to strictly prevent partial lock holding while waiting.
     bool try_acquire_locks(int pid, const std::vector<int>& raw_locks, int& conflicting_account, int& conflicting_pid) {
         std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        total_monotonic_sorts_++;
         
         std::vector<int> sorted_locks = get_monotonic_lock_order(raw_locks);
         std::vector<int> acquired_in_this_call;
@@ -63,6 +70,7 @@ public:
                 // Conflict! Lock is held by another PID
                 conflicting_account = acc_id;
                 conflicting_pid = it->second;
+                total_conflicts_++;
 
                 // Roll back any locks acquired during this attempt
                 for (int rollback_acc : acquired_in_this_call) {
@@ -84,6 +92,7 @@ public:
         }
 
         // Successfully acquired all locks
+        total_acquisitions_++;
         waiting_ticks_.erase(pid);
         return true;
     }
@@ -113,8 +122,34 @@ public:
             }
             pid_held_locks_.erase(it);
         }
+        total_releases_ += released.size();
         waiting_ticks_.erase(pid);
         return released;
+    }
+
+    std::map<int, int> get_active_locks_map() const {
+        std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        return lock_table_;
+    }
+
+    long long get_total_acquisitions() const {
+        std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        return total_acquisitions_;
+    }
+
+    long long get_total_conflicts() const {
+        std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        return total_conflicts_;
+    }
+
+    long long get_total_releases() const {
+        std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        return total_releases_;
+    }
+
+    long long get_total_monotonic_sorts() const {
+        std::lock_guard<std::mutex> lock(lock_mgr_mutex_);
+        return total_monotonic_sorts_;
     }
 
     bool is_locked(int account_id) const {

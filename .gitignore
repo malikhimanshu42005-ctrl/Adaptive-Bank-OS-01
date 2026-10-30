@@ -1,0 +1,9 @@
+bank_os_server
+test_bank_os
+*.o
+*.dSYM
+.DS_Store
+state_transitions*.json
+test_transitions.json
+bank_db_transmission_log*.json
+

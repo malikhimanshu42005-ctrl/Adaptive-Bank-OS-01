@@ -40,6 +40,11 @@ private:
     int current_quantum_used_ = 0; // Cycles executed in current quantum
     int aging_threshold_ = 50;   // Default X = 50 ticks in Queue 2
     
+    // Operating System Scheduling Telemetry Counters
+    long long total_aging_promotions_ = 0;
+    long long total_preemptions_ = 0;
+    long long total_dispatches_ = 0;
+
     std::vector<StateTransitionRecord> transition_history_;
     mutable std::mutex scheduler_mutex_;
 
@@ -110,6 +115,7 @@ public:
                 proc->current_queue = 1;
                 queue1_.push_back(proc);
                 it = queue2_.erase(it);
+                total_aging_promotions_++;
                 log_transition(current_tick, proc->pid, proc->type, proc->state, proc->state, 
                     "Aged promotion: wait " + std::to_string(proc->queue2_ticks) + " ticks >= threshold " + std::to_string(aging_threshold_));
             } else {
@@ -185,12 +191,14 @@ public:
                         log_transition(current_tick, preempted->pid, preempted->type, ProcessState::RUNNING, ProcessState::READY, 
                             "Preempted by shorter Queue 1 job");
                     }
+                    total_preemptions_++;
                     running_process_ = *best_it;
                     queue1_.erase(best_it);
                     current_quantum_used_ = 0;
                     if (running_process_->start_time < 0) running_process_->start_time = current_tick;
                     ProcessState prev = running_process_->state;
                     running_process_->state = ProcessState::RUNNING;
+                    total_dispatches_++;
                     log_transition(current_tick, running_process_->pid, running_process_->type, prev, ProcessState::RUNNING, "Dispatched via Q1 SRTF");
                     return running_process_;
                 }
@@ -201,6 +209,7 @@ public:
                 if (running_process_->start_time < 0) running_process_->start_time = current_tick;
                 ProcessState prev = running_process_->state;
                 running_process_->state = ProcessState::RUNNING;
+                total_dispatches_++;
                 log_transition(current_tick, running_process_->pid, running_process_->type, prev, ProcessState::RUNNING, "Dispatched via Q1 SRTF");
                 return running_process_;
             }
@@ -231,6 +240,7 @@ public:
             if (running_process_->start_time < 0) running_process_->start_time = current_tick;
             ProcessState prev = running_process_->state;
             running_process_->state = ProcessState::RUNNING;
+            total_dispatches_++;
             log_transition(current_tick, running_process_->pid, running_process_->type, prev, ProcessState::RUNNING, "Dispatched via Q2 Round Robin");
             return running_process_;
         }
@@ -293,6 +303,21 @@ public:
     size_t get_q2_size() const {
         std::lock_guard<std::mutex> lock(scheduler_mutex_);
         return queue2_.size();
+    }
+
+    long long get_aging_promotions_count() const {
+        std::lock_guard<std::mutex> lock(scheduler_mutex_);
+        return total_aging_promotions_;
+    }
+
+    long long get_preemptions_count() const {
+        std::lock_guard<std::mutex> lock(scheduler_mutex_);
+        return total_preemptions_;
+    }
+
+    long long get_dispatches_count() const {
+        std::lock_guard<std::mutex> lock(scheduler_mutex_);
+        return total_dispatches_;
     }
 
     std::vector<StateTransitionRecord> get_transitions(size_t max_records = 200) const {

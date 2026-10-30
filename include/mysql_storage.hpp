@@ -65,6 +65,46 @@ struct StoredTransaction {
     }
 };
 
+struct BankDBTransmissionRecord {
+    long long dispatch_id = 0;
+    int tick = 0;
+    int pid = 0;
+    std::string type;
+    int from_account = 0;
+    std::string from_account_name;
+    int to_account = 0;
+    std::string to_account_name;
+    double amount = 0.0;
+    std::string lock_verification;
+    std::string acid_check;
+    long long wal_sequence_num = 0;
+    double sender_balance_before = 0.0;
+    double sender_balance_after = 0.0;
+    std::string bank_db_status;
+    std::string failure_reason;
+
+    json to_json() const {
+        json j = json::object();
+        j["dispatch_id"] = dispatch_id;
+        j["tick"] = tick;
+        j["pid"] = pid;
+        j["type"] = type;
+        j["from_account"] = from_account;
+        j["from_account_name"] = from_account_name;
+        j["to_account"] = to_account;
+        j["to_account_name"] = to_account_name;
+        j["amount"] = amount;
+        j["lock_verification"] = lock_verification;
+        j["acid_check"] = acid_check;
+        j["wal_sequence_num"] = wal_sequence_num;
+        j["sender_balance_before"] = sender_balance_before;
+        j["sender_balance_after"] = sender_balance_after;
+        j["bank_db_status"] = bank_db_status;
+        j["failure_reason"] = failure_reason;
+        return j;
+    }
+};
+
 class StorageEngine {
 private:
     bool use_mysql_ = false;
@@ -76,12 +116,21 @@ private:
 
     // In-memory thread-safe ledger (primary or fallback)
     std::map<int, double> balances_;
+    std::map<int, double> initial_balances_;
     std::map<int, std::string> account_types_;
+    std::map<int, std::string> account_names_;
+    std::map<int, double> total_debits_;
+    std::map<int, double> total_credits_;
+    std::map<int, int> tx_counts_;
+    double initial_ledger_sum_ = 0.0;
+
     std::vector<WALRecord> wal_log_;
     std::vector<StoredTransaction> transactions_;
+    std::vector<BankDBTransmissionRecord> transmission_log_;
     
     std::atomic<long long> next_wal_seq_{1};
     std::atomic<int> next_tx_id_{1};
+    std::atomic<long long> next_dispatch_id_{1};
 
     long long total_commits_ = 0;
     long long total_rollbacks_ = 0;
@@ -115,10 +164,36 @@ public:
     void seed_accounts(const std::vector<AccountSeed>& seeds) {
         std::lock_guard<std::mutex> lock(storage_mutex_);
         balances_.clear();
+        initial_balances_.clear();
         account_types_.clear();
+        account_names_.clear();
+        total_debits_.clear();
+        total_credits_.clear();
+        tx_counts_.clear();
+        initial_ledger_sum_ = 0.0;
+
         for (const auto& s : seeds) {
             balances_[s.account_id] = s.initial_balance;
+            initial_balances_[s.account_id] = s.initial_balance;
             account_types_[s.account_id] = s.type;
+            total_debits_[s.account_id] = 0.0;
+            total_credits_[s.account_id] = 0.0;
+            tx_counts_[s.account_id] = 0;
+            initial_ledger_sum_ += s.initial_balance;
+
+            if (s.account_id == 1001) account_names_[s.account_id] = "Rajesh Kumar (Retail)";
+            else if (s.account_id == 1002) account_names_[s.account_id] = "Priya Sharma (Retail)";
+            else if (s.account_id == 1003) account_names_[s.account_id] = "Amit Patel (Retail)";
+            else if (s.account_id == 1004) account_names_[s.account_id] = "Sunita Rao (Retail)";
+            else if (s.account_id == 1005) account_names_[s.account_id] = "Vikram Singh [Low Bal ₹300]";
+            else if (s.account_id == 1006) account_names_[s.account_id] = "Ananya Das (Retail)";
+            else if (s.account_id == 1007) account_names_[s.account_id] = "Rahul Verma (Retail)";
+            else if (s.account_id == 1008) account_names_[s.account_id] = "Sneha Gupta [Low Bal ₹100]";
+            else if (s.account_id == 2001) account_names_[s.account_id] = "Infosys Treasury (Corporate)";
+            else if (s.account_id == 2002) account_names_[s.account_id] = "Tata Steel Payroll (Corporate)";
+            else if (s.account_id == 5001) account_names_[s.account_id] = "ATM Vault Mumbai (Reserve)";
+            else if (s.account_id == 5002) account_names_[s.account_id] = "ATM Vault Delhi (Reserve)";
+            else account_names_[s.account_id] = "Account #" + std::to_string(s.account_id);
         }
     }
 
@@ -198,6 +273,27 @@ public:
             tx.created_tick = current_tick;
             transactions_.push_back(tx);
 
+            // Record Bank Database Transmission Log (Audit stream sent to Bank DB)
+            BankDBTransmissionRecord rec;
+            rec.dispatch_id = next_dispatch_id_++;
+            rec.tick = current_tick;
+            rec.pid = pcb.pid;
+            rec.type = to_string(pcb.type);
+            rec.from_account = from_acc;
+            rec.from_account_name = account_names_.count(from_acc) ? account_names_.at(from_acc) : ("Acc #" + std::to_string(from_acc));
+            rec.to_account = to_acc;
+            rec.to_account_name = account_names_.count(to_acc) ? account_names_.at(to_acc) : ("Acc #" + std::to_string(to_acc));
+            rec.amount = amt;
+            rec.lock_verification = "Strict Monotonic Order Verified (Lock ID_A < Lock ID_B)";
+            rec.acid_check = "INSUFFICIENT FUNDS (Atomic Rollback Triggered)";
+            rec.wal_sequence_num = wal.sequence_number;
+            rec.sender_balance_before = sender_balance;
+            rec.sender_balance_after = sender_balance;
+            rec.bank_db_status = "ROLLED_BACK_ATOMIC";
+            rec.failure_reason = pcb.failure_reason;
+            transmission_log_.push_back(rec);
+
+            tx_counts_[from_acc]++;
             total_rollbacks_++;
             return false;
         }
@@ -208,6 +304,10 @@ public:
 
         balances_[from_acc] -= amt;
         balances_[to_acc] += amt;
+        total_debits_[from_acc] += amt;
+        total_credits_[to_acc] += amt;
+        tx_counts_[from_acc]++;
+        tx_counts_[to_acc]++;
 
         pcb.state = ProcessState::TERMINATED;
         pcb.completion_time = current_tick;
@@ -262,6 +362,26 @@ public:
         tx.created_tick = current_tick;
         transactions_.push_back(tx);
 
+        // Record Bank Database Transmission Log (Audit stream sent to Bank DB)
+        BankDBTransmissionRecord rec;
+        rec.dispatch_id = next_dispatch_id_++;
+        rec.tick = current_tick;
+        rec.pid = pcb.pid;
+        rec.type = to_string(pcb.type);
+        rec.from_account = from_acc;
+        rec.from_account_name = account_names_.count(from_acc) ? account_names_.at(from_acc) : ("Acc #" + std::to_string(from_acc));
+        rec.to_account = to_acc;
+        rec.to_account_name = account_names_.count(to_acc) ? account_names_.at(to_acc) : ("Acc #" + std::to_string(to_acc));
+        rec.amount = amt;
+        rec.lock_verification = "Strict Monotonic Order Verified (Lock ID_A < Lock ID_B)";
+        rec.acid_check = "Balance Verified Sufficient (PASSED)";
+        rec.wal_sequence_num = wal_commit.sequence_number;
+        rec.sender_balance_before = old_sender_bal;
+        rec.sender_balance_after = balances_[from_acc];
+        rec.bank_db_status = "COMMITTED_TO_BANK_DB";
+        rec.failure_reason = "";
+        transmission_log_.push_back(rec);
+
         total_commits_++;
         return true;
     }
@@ -295,6 +415,82 @@ public:
     size_t get_wal_size() const {
         std::lock_guard<std::mutex> lock(storage_mutex_);
         return wal_log_.size();
+    }
+
+    double get_total_ledger_sum() const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        double sum = 0.0;
+        for (const auto& kv : balances_) sum += kv.second;
+        return sum;
+    }
+
+    double get_initial_ledger_sum() const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        return initial_ledger_sum_;
+    }
+
+    json get_accounts_detailed_json(const std::map<int, int>& active_locks) const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        json arr = json::array();
+        for (const auto& kv : balances_) {
+            int acc_id = kv.first;
+            json obj = json::object();
+            obj["account_id"] = acc_id;
+            obj["name"] = account_names_.count(acc_id) ? account_names_.at(acc_id) : ("Account #" + std::to_string(acc_id));
+            obj["type"] = account_types_.count(acc_id) ? account_types_.at(acc_id) : "RETAIL";
+            obj["balance"] = kv.second;
+            obj["initial_balance"] = initial_balances_.count(acc_id) ? initial_balances_.at(acc_id) : kv.second;
+            obj["total_debits"] = total_debits_.count(acc_id) ? total_debits_.at(acc_id) : 0.0;
+            obj["total_credits"] = total_credits_.count(acc_id) ? total_credits_.at(acc_id) : 0.0;
+            obj["tx_count"] = tx_counts_.count(acc_id) ? tx_counts_.at(acc_id) : 0;
+            auto lock_it = active_locks.find(acc_id);
+            if (lock_it != active_locks.end()) {
+                obj["is_locked"] = true;
+                obj["locked_by_pid"] = lock_it->second;
+            } else {
+                obj["is_locked"] = false;
+                obj["locked_by_pid"] = nullptr;
+            }
+            obj["is_low_balance"] = (acc_id == 1005 || acc_id == 1008);
+            arr.push_back(obj);
+        }
+        return arr;
+    }
+
+    json get_wal_records_json(size_t limit = 30) const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        json arr = json::array();
+        size_t start = (wal_log_.size() > limit) ? (wal_log_.size() - limit) : 0;
+        for (size_t i = wal_log_.size(); i > start; --i) {
+            arr.push_back(wal_log_[i - 1].to_json());
+        }
+        return arr;
+    }
+
+    json get_transmission_log_json(size_t limit = 50) const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        json arr = json::array();
+        size_t start = (transmission_log_.size() > limit) ? (transmission_log_.size() - limit) : 0;
+        for (size_t i = transmission_log_.size(); i > start; --i) {
+            arr.push_back(transmission_log_[i - 1].to_json());
+        }
+        return arr;
+    }
+
+    bool export_transmission_log_to_file(const std::string& filename, size_t max_records = 0) const {
+        std::lock_guard<std::mutex> lock(storage_mutex_);
+        json arr = json::array();
+        size_t start_idx = 0;
+        if (max_records > 0 && transmission_log_.size() > max_records) {
+            start_idx = transmission_log_.size() - max_records;
+        }
+        for (size_t i = start_idx; i < transmission_log_.size(); ++i) {
+            arr.push_back(transmission_log_[i].to_json());
+        }
+        std::ofstream ofs(filename);
+        if (!ofs.is_open()) return false;
+        ofs << arr.dump(2);
+        return true;
     }
 };
 

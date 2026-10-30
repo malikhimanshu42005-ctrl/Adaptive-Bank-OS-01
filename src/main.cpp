@@ -83,6 +83,73 @@ int main(int argc, char* argv[]) {
         res.set_content(sim->get_transitions_json(limit).dump(), "application/json");
     });
 
+    // 4b. GET /api/accounts
+    svr.Get("/api/accounts", [sim](const httplib::Request&, httplib::Response& res) {
+        res.set_content(sim->get_accounts_json().dump(), "application/json");
+    });
+
+    // 4c. GET /api/wal
+    svr.Get("/api/wal", [sim](const httplib::Request& req, httplib::Response& res) {
+        size_t limit = 30;
+        if (req.has_param("limit")) {
+            try { limit = std::stoul(req.get_param_value("limit")); } catch (...) {}
+        }
+        res.set_content(sim->get_wal_json(limit).dump(), "application/json");
+    });
+
+    // 4d. GET /api/scheduled
+    svr.Get("/api/scheduled", [sim](const httplib::Request& req, httplib::Response& res) {
+        size_t limit = 20;
+        if (req.has_param("limit")) {
+            try { limit = std::stoul(req.get_param_value("limit")); } catch (...) {}
+        }
+        res.set_content(sim->get_scheduled_json(limit).dump(), "application/json");
+    });
+
+    // 4e. GET /api/bank-db-log
+    svr.Get("/api/bank-db-log", [sim](const httplib::Request& req, httplib::Response& res) {
+        size_t limit = 50;
+        if (req.has_param("limit")) {
+            try { limit = std::stoul(req.get_param_value("limit")); } catch (...) {}
+        }
+        res.set_content(sim->get_bank_db_log_json(limit).dump(), "application/json");
+    });
+
+    // 4f. GET /api/bank-db-log/export
+    svr.Get("/api/bank-db-log/export", [sim](const httplib::Request&, httplib::Response& res) {
+        std::string filename = "bank_db_transmission_log.json";
+        sim->export_bank_db_log(filename, 5000);
+        std::ifstream ifs(filename);
+        if (ifs.is_open()) {
+            std::stringstream ss;
+            ss << ifs.rdbuf();
+            res.set_header("Content-Disposition", "attachment; filename=\"bank_db_transmission_log.json\"");
+            res.set_content(ss.str(), "application/json");
+        } else {
+            res.set_content("{\"error\":\"Failed to export bank db log\"}", "application/json");
+        }
+    });
+
+    // 4g. POST /api/benchmark/trigger?scenario=<scenario>
+    svr.Post("/api/benchmark/trigger", [sim](const httplib::Request& req, httplib::Response& res) {
+        std::string scenario = "flash_sale";
+        if (req.has_param("scenario")) {
+            scenario = req.get_param_value("scenario");
+        } else if (!req.body.empty()) {
+            try {
+                json body = json::parse(req.body);
+                if (body.contains("scenario")) {
+                    scenario = body["scenario"].get<std::string>();
+                }
+            } catch (...) {}
+        }
+        sim->trigger_benchmark_scenario(scenario);
+        json out = json::object();
+        out["status"] = "ok";
+        out["scenario"] = scenario;
+        res.set_content(out.dump(), "application/json");
+    });
+
     // 5. POST /api/comparison-mode
     svr.Post("/api/comparison-mode", [sim](const httplib::Request& req, httplib::Response& res) {
         bool adaptive = true;

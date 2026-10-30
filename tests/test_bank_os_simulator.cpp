@@ -191,6 +191,63 @@ void test_json_transition_export() {
     std::cout << "  -> Transitions exported to JSON file successfully.\n";
 }
 
+void test_2pl_and_ledger_invariant() {
+    std::cout << "[Test 1.10] Testing 2PL Concurrency and Global Ledger Conservation Invariant...\n";
+    BankOSSimulator sim(1000, true, 30);
+    
+    // Step simulation 100 ticks
+    for (int t = 0; t < 100; ++t) {
+        sim.step_tick();
+    }
+
+    json state = sim.get_state_json();
+    assert(state.contains("dbms_concepts"));
+    assert(state.contains("os_concepts"));
+    assert(state.contains("accounts_detailed"));
+    assert(state.contains("scheduled_preview"));
+
+    // Verify ACID Ledger Invariant: Total bank balance must strictly equal initial balance (delta == 0)
+    json acid = state["dbms_concepts"]["acid"];
+    double total_bal = acid["consistency_ledger_balance"].get<double>();
+    double init_bal = acid["consistency_initial_balance"].get<double>();
+    assert(std::abs(total_bal - init_bal) < 0.01);
+    assert(acid["consistency_invariant_valid"].get<bool>() == true);
+
+    // Verify Strict 2PL metrics
+    json tpl = state["dbms_concepts"]["two_phase_locking"];
+    assert(tpl.contains("total_acquisitions"));
+    assert(tpl.contains("total_releases"));
+    assert(tpl.contains("active_locks_count"));
+
+    // Verify 12 Accounts
+    json accounts = state["accounts_detailed"];
+    assert(accounts.size() == 12);
+
+    std::cout << "  -> 2PL and Global Ledger Conservation Invariant (12 accounts, sum=12.3M, delta=0) PASSED.\n";
+}
+
+void test_bank_db_log_and_benchmark_triggers() {
+    std::cout << "[Test 1.11] Testing Bank DB Transmission Log & Benchmark Scenario Injections...\n";
+    BankOSSimulator sim(500, true, 20);
+
+    // Trigger flash sale
+    sim.trigger_benchmark_scenario("flash_sale");
+    sim.step_tick();
+
+    // Verify transmission log recorded
+    json log = sim.get_bank_db_log_json(10);
+    assert(log.is_array());
+
+    // Trigger insufficient funds
+    sim.trigger_benchmark_scenario("insufficient_funds");
+    for (int t = 0; t < 5; ++t) sim.step_tick();
+
+    json state = sim.get_state_json();
+    assert(state.contains("bank_db_transmission_log"));
+
+    std::cout << "  -> Bank DB Transmission Log & Benchmark Triggers PASSED.\n";
+}
+
 int main() {
     std::cout << "========================================================\n";
     std::cout << " RUNNING TEST SUITE 1: BANK OS SIMULATOR INTEGRATION    \n";
@@ -205,6 +262,8 @@ int main() {
     test_insufficient_funds_rollback();
     test_mdacc_vs_baseline();
     test_json_transition_export();
+    test_2pl_and_ledger_invariant();
+    test_bank_db_log_and_benchmark_triggers();
 
     std::cout << ">>> ALL TEST 1 ASSERTIONS PASSED SUCCESSFULLY! <<<\n\n";
     return 0;
