@@ -1,6 +1,6 @@
 /**
  * Adaptive Bank OS — Mission Control Dashboard Frontend Logic
- * Version 2.5: Interactive Architecture Pipeline, 2PL, ACID, MLFQ, and Core Bank DB
+ * Version 2.6: Interactive Architecture Pipeline, 2PL, ACID, MLFQ, and Core Bank DB
  * Pure Vanilla JavaScript (Zero external dependencies)
  */
 
@@ -19,6 +19,16 @@
     let lastBankLogRecords = [];
     let activeBenchmark = null;
     let benchmarkTimer = null;
+
+    // Enhanced interactive feature state
+    let scopeChannels = { tps: true, contention: true, abort: true };
+    let isScopeFrozen = false;
+    let currentAccountFilter = 'ALL';
+    let bankLogSearchQuery = '';
+    let bankLogStatusFilter = 'ALL';
+    let walOpFilter = 'ALL';
+    let walSearchQuery = '';
+    let ganttHistory = [];
 
     // Local fallback simulator variables for offline preview / standalone demo
     let simTick = 104;
@@ -153,7 +163,6 @@
     const packetPid = document.getElementById('packet-pid');
     const packetType = document.getElementById('packet-type');
     const packetAmt = document.getElementById('packet-amt');
-    const pipelineCurrentAction = document.getElementById('pipeline-current-action');
 
     // View 2: Scheduled DB -> Bank DB DOM
     const schedPendingBadge = document.getElementById('sched-pending-badge');
@@ -223,6 +232,7 @@
     // Initialization
     function init() {
         bindEvents();
+        bindKeyboardShortcuts();
         pollState();
         setInterval(pollState, 500);
         pollTransitions();
@@ -293,6 +303,25 @@
         // PCB Search and Filter
         if (pcbSearch) pcbSearch.addEventListener('input', renderPcbTable);
         if (pcbFilterState) pcbFilterState.addEventListener('change', renderPcbTable);
+    }
+
+    function bindKeyboardShortcuts() {
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.key === '1') switchTab('overview');
+            else if (e.key === '2') switchTab('scheduled-bank-db');
+            else if (e.key === '3') switchTab('oscilloscope');
+            else if (e.key === '4') switchTab('dbms-concepts');
+            else if (e.key === '5') switchTab('os-concepts');
+            else if (e.key === ' ') { e.preventDefault(); btnPauseResume.click(); }
+            else if (e.key === 'm' || e.key === 'M') { modeToggle.click(); }
+            else if (e.key === '?') { window.openShortcutsModal(); }
+            else if (e.key === 'Escape') {
+                window.closeConceptModal();
+                window.closePcbModal();
+                window.closeShortcutsModal();
+            }
+        });
     }
 
     function switchTab(tabId) {
@@ -477,6 +506,17 @@
         if (activeBenchmark === 'hotspot_contention') compIdx = 0.72 + (Math.random() * 0.15);
         else if (activeBenchmark === 'flash_sale') compIdx = 0.28 + (Math.random() * 0.12);
 
+        const syntheticRunning = {
+            pid: pid,
+            type: typeStr,
+            amount: amt,
+            from_account: fromAcc.account_id,
+            to_account: toAcc.account_id,
+            burst_time: 1,
+            total_burst_time: isSalary ? 12 : 3,
+            required_locks: [firstLock, secondLock]
+        };
+
         const syntheticState = {
             current_tick: simTick,
             is_paused: isPaused,
@@ -484,16 +524,7 @@
             comparison_mode: modeToggle.checked ? 'ADAPTIVE_MDACC' : 'STANDARD_BASELINE',
             total_commits: simCommits,
             total_rollbacks: simRollbacks,
-            running_process: {
-                pid: pid,
-                type: typeStr,
-                amount: amt,
-                from_account: fromAcc.account_id,
-                to_account: toAcc.account_id,
-                burst_time: 1,
-                total_burst_time: isSalary ? 12 : 3,
-                required_locks: [firstLock, secondLock]
-            },
+            running_process: syntheticRunning,
             queue1_pids: q1List,
             queue2_pids: q2List,
             waiting_pids: waitList,
@@ -771,6 +802,81 @@
             { pid: waitPids[0], type: "UPI", state: "WAITING", current_queue: 1, from_account: 1005, to_account: 1001, amount: 1200.0, burst_time: 2, total_burst_time: 2, retry_count: 1, backoff_remaining: 3 }
         ];
         renderPcbTable();
+
+        // 9. Update Interactive Enhanced Elements
+        updateMilestoneTracer(running);
+        updateGanttStrip(running);
+        updateSettlementSummary(lastBankLogRecords.length > 0 ? lastBankLogRecords : simBankLog);
+    }
+
+    // =========================================================================
+    // ENHANCED TRACER, GANTT & SETTLEMENT ENGINE
+    // =========================================================================
+
+    function updateMilestoneTracer(running) {
+        const tracerPid = document.getElementById('tracer-pid-badge');
+        const tracerQueue = document.getElementById('tracer-queue-name');
+        const tracerLocks = document.getElementById('tracer-locks-sub');
+        const tracerWal = document.getElementById('tracer-wal-sub');
+        const tracerSettle = document.getElementById('tracer-settle-sub');
+
+        if (!tracerPid || !running) return;
+
+        tracerPid.textContent = `Processing Tx #${running.pid} (${running.type})`;
+        if (tracerQueue) tracerQueue.textContent = (running.type === 'SALARY') ? 'Queue 2 (RR Q=5)' : 'Queue 1 (SRTF)';
+        if (tracerLocks) tracerLocks.textContent = `Acc ${Math.min(running.from_account, running.to_account)} < ${Math.max(running.from_account, running.to_account)}`;
+        if (tracerWal) tracerWal.textContent = `LSN #${(running.pid % 900) + 1} Stamped`;
+        if (tracerSettle) tracerSettle.textContent = formatINR(running.amount || 0);
+    }
+
+    function updateGanttStrip(running) {
+        const container = document.getElementById('gantt-strip-container');
+        if (!container || !running) return;
+
+        ganttHistory.push({
+            pid: running.pid,
+            type: running.type,
+            burst: running.burst_time
+        });
+        if (ganttHistory.length > 16) {
+            ganttHistory.shift();
+        }
+
+        let html = '';
+        ganttHistory.forEach(slot => {
+            html += `
+                <div class="gantt-slot type-${slot.type}">
+                    <span class="gantt-slot-pid">#${slot.pid}</span>
+                    <span class="gantt-slot-type">${slot.type}</span>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function updateSettlementSummary(records) {
+        const totalEl = document.getElementById('settle-total-volume');
+        const committedEl = document.getElementById('settle-committed-volume');
+        const rollbackEl = document.getElementById('settle-rollback-volume');
+        if (!totalEl || !records) return;
+
+        let total = 0;
+        let committed = 0;
+        let rollback = 0;
+
+        records.forEach(r => {
+            const amt = r.amount || 0;
+            total += amt;
+            if (r.bank_db_status === 'COMMITTED') {
+                committed += amt;
+            } else {
+                rollback += amt;
+            }
+        });
+
+        totalEl.textContent = formatINR(total);
+        if (committedEl) committedEl.textContent = formatINR(committed);
+        if (rollbackEl) rollbackEl.textContent = formatINR(rollback);
     }
 
     // =========================================================================
@@ -784,7 +890,28 @@
             benchmarkActiveBadge.className = 'status-badge running';
         }
 
-        // Reset badge after 4.5 seconds
+        // Live Benchmark HUD
+        const hud = document.getElementById('benchmark-execution-hud');
+        const hudTitle = document.getElementById('hud-scenario-title');
+        const hudProgress = document.getElementById('hud-progress-fill');
+        const hudInjection = document.getElementById('hud-active-injection');
+        const hudPeak = document.getElementById('hud-peak-tps');
+
+        if (hud && hudTitle) {
+            hud.style.display = 'flex';
+            hudTitle.textContent = `SCENARIO: ${scenarioName.toUpperCase().replace('_', ' ')}`;
+            if (hudInjection) {
+                const count = (scenarioName === 'flash_sale') ? '150 UPI txns' : ((scenarioName === 'salary_burst') ? '100 Salary txns' : '80 Contention txns');
+                hudInjection.textContent = count;
+            }
+            if (hudPeak) hudPeak.textContent = `${(Math.random() * 25 + 45).toFixed(1)} TPS`;
+            if (hudProgress) {
+                hudProgress.style.width = '0%';
+                setTimeout(() => { if (hudProgress) hudProgress.style.width = '100%'; }, 50);
+            }
+        }
+
+        // Reset badge & HUD after 4.5 seconds
         if (benchmarkTimer) clearTimeout(benchmarkTimer);
         benchmarkTimer = setTimeout(() => {
             activeBenchmark = null;
@@ -792,6 +919,7 @@
                 benchmarkActiveBadge.textContent = 'READY TO BENCHMARK';
                 benchmarkActiveBadge.className = 'status-badge';
             }
+            if (hud) hud.style.display = 'none';
         }, 4500);
 
         if (scenarioName === 'baseline_shootout') {
@@ -815,7 +943,7 @@
     async function pollBankDbLog() {
         if (!isBackendConnected) return; // In fallback mode, handled in stepStandaloneEngine
         try {
-            const res = await fetch('/api/bank-db-log?limit=30');
+            const res = await fetch('/api/bank-db-log?limit=50');
             if (!res.ok) return;
             const records = await res.json();
             if (records && records.length > 0) {
@@ -832,8 +960,27 @@
             return;
         }
 
+        const filtered = records.filter(rec => {
+            if (bankLogStatusFilter !== 'ALL' && rec.bank_db_status !== bankLogStatusFilter) return false;
+            if (bankLogSearchQuery) {
+                const pidMatch = rec.pid && rec.pid.toString().includes(bankLogSearchQuery);
+                const fromMatch = rec.from_account && rec.from_account.toString().includes(bankLogSearchQuery);
+                const toMatch = rec.to_account && rec.to_account.toString().includes(bankLogSearchQuery);
+                if (!pidMatch && !fromMatch && !toMatch) return false;
+            }
+            return true;
+        });
+
+        const countInd = document.getElementById('log-count-indicator');
+        if (countInd) countInd.textContent = `Showing ${filtered.length} records`;
+
+        if (filtered.length === 0) {
+            tbodyBankLog.innerHTML = '<tr><td colspan="10" class="text-center text-muted">No records match the filter query</td></tr>';
+            return;
+        }
+
         let html = '';
-        records.slice(0, 30).forEach(rec => {
+        filtered.slice(0, 30).forEach(rec => {
             const isCommitted = (rec.bank_db_status === 'COMMITTED');
             const resultBadge = isCommitted
                 ? '<span class="status-badge text-emerald">COMMITTED</span>'
@@ -865,11 +1012,18 @@
         tbodyBankLog.innerHTML = html;
     }
 
+    window.filterBankLog = function () {
+        const searchInput = document.getElementById('bank-log-search');
+        const statusFilter = document.getElementById('bank-log-status-filter');
+        if (searchInput) bankLogSearchQuery = searchInput.value.trim().toLowerCase();
+        if (statusFilter) bankLogStatusFilter = statusFilter.value;
+        renderBankTransmissionLog(lastBankLogRecords.length > 0 ? lastBankLogRecords : simBankLog);
+    };
+
     window.downloadBankLog = function () {
         if (isBackendConnected) {
             window.location.href = '/api/bank-db-log/export';
         } else {
-            // Generate client-side JSON export
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(simBankLog, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
@@ -878,6 +1032,23 @@
             downloadAnchor.click();
             downloadAnchor.remove();
         }
+    };
+
+    window.downloadBankLogCsv = function () {
+        const records = lastBankLogRecords.length > 0 ? lastBankLogRecords : simBankLog;
+        let csv = 'DISPATCH_ID,TICK,PID,TYPE,FROM_ACCOUNT,TO_ACCOUNT,AMOUNT,LOCK_CHECK,ACID_CHECK,WAL_SEQ,BAL_BEFORE,BAL_AFTER,STATUS\n';
+        records.forEach(r => {
+            csv += `"${r.dispatch_id}",${r.tick},${r.pid},"${r.type}",${r.from_account},${r.to_account},${r.amount},"${r.lock_verification || ''}","${r.acid_check || ''}",${r.wal_sequence_num},${r.sender_balance_before},${r.sender_balance_after},"${r.bank_db_status}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'bank_db_transmission_log.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
     };
 
     // =========================================================================
@@ -908,6 +1079,18 @@
         tbodyScheduled.innerHTML = html;
     }
 
+    window.filterAccounts = function (category) {
+        currentAccountFilter = category;
+        document.querySelectorAll('.acc-filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-acc-filter') === category) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        renderBankAccountsGrid(simAccounts);
+    };
+
     function renderBankAccountsGrid(accounts) {
         if (!accountsCardsContainer) return;
         if (!accounts || accounts.length === 0) {
@@ -915,8 +1098,13 @@
             return;
         }
 
+        const filtered = accounts.filter(acc => {
+            if (currentAccountFilter === 'ALL') return true;
+            return acc.type === currentAccountFilter;
+        });
+
         let html = '';
-        accounts.forEach(acc => {
+        filtered.forEach(acc => {
             const isLocked = acc.is_locked;
             const isLowBal = acc.is_low_balance;
             let cardClass = 'account-card';
@@ -966,6 +1154,19 @@
         accountsCardsContainer.innerHTML = html;
     }
 
+    window.filterWal = function (op) {
+        if (op) {
+            walOpFilter = op;
+            document.querySelectorAll('.wal-filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-wal-op') === op) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+        }
+        const searchInput = document.getElementById('wal-search-input');
+        if (searchInput) walSearchQuery = searchInput.value.trim().toLowerCase();
+        renderWalTable(simWal);
+    };
+
     function renderWalTable(walRecords) {
         if (!tbodyWal) return;
         if (!walRecords || walRecords.length === 0) {
@@ -973,8 +1174,27 @@
             return;
         }
 
+        const filtered = walRecords.filter(wal => {
+            if (walOpFilter !== 'ALL') {
+                if (walOpFilter === 'DEBIT' && wal.operation !== 'DEBIT' && wal.operation !== 'CREDIT') return false;
+                else if (walOpFilter !== 'DEBIT' && wal.operation !== walOpFilter) return false;
+            }
+            if (walSearchQuery) {
+                const seqMatch = wal.sequence_number && wal.sequence_number.toString().includes(walSearchQuery);
+                const pidMatch = wal.pid && wal.pid.toString().includes(walSearchQuery);
+                const accMatch = wal.account_id && wal.account_id.toString().includes(walSearchQuery);
+                if (!seqMatch && !pidMatch && !accMatch) return false;
+            }
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbodyWal.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No WAL records match filter</td></tr>';
+            return;
+        }
+
         let html = '';
-        walRecords.slice(0, 15).forEach(wal => {
+        filtered.slice(0, 15).forEach(wal => {
             let opColor = 'text-blue';
             if (wal.operation === 'COMMIT') opColor = 'text-emerald';
             else if (wal.operation === 'ROLLBACK') opColor = 'text-rose';
@@ -1045,7 +1265,7 @@
         filtered.forEach(p => {
             const qStr = p.aged_promoted ? 'Q1 (Aged Promotion)' : ('Q' + p.current_queue);
             html += `
-                <tr>
+                <tr onclick="openPcbModal(${p.pid})" title="Click to inspect PCB #${p.pid}">
                     <td><strong>#${p.pid}</strong></td>
                     <td><span class="type-pill ${p.type}">${p.type}</span></td>
                     <td><span class="status-badge">${p.state}</span></td>
@@ -1142,6 +1362,7 @@
     }
 
     function drawLargeOscilloscope(data) {
+        if (isScopeFrozen) return;
         if (!oscCtx || !largeOscilloscopeCanvas) return;
         const w = largeOscilloscopeCanvas.width;
         const h = largeOscilloscopeCanvas.height;
@@ -1178,43 +1399,61 @@
         const maxVal = Math.max(50, Math.max(...tpsHistory) * 1.15);
         const step = w / (maxTpsHistory - 1);
 
-        // 1. Throughput Wave (Blue Gradient Fill)
-        oscCtx.beginPath();
-        tpsHistory.forEach((val, i) => {
-            const x = i * step;
-            const y = h - (val / maxVal) * (h - 24) - 12;
-            if (i === 0) oscCtx.moveTo(x, y);
-            else oscCtx.lineTo(x, y);
-        });
-        oscCtx.strokeStyle = '#58a6ff';
-        oscCtx.lineWidth = 2.2;
-        oscCtx.lineJoin = 'round';
-        oscCtx.stroke();
+        // 1. CH1: Throughput Wave (Blue Gradient Fill)
+        if (scopeChannels.tps) {
+            oscCtx.beginPath();
+            tpsHistory.forEach((val, i) => {
+                const x = i * step;
+                const y = h - (val / maxVal) * (h - 24) - 12;
+                if (i === 0) oscCtx.moveTo(x, y);
+                else oscCtx.lineTo(x, y);
+            });
+            oscCtx.strokeStyle = '#58a6ff';
+            oscCtx.lineWidth = 2.2;
+            oscCtx.lineJoin = 'round';
+            oscCtx.stroke();
 
-        // Fill under throughput curve
-        oscCtx.lineTo((tpsHistory.length - 1) * step, h);
-        oscCtx.lineTo(0, h);
-        oscCtx.closePath();
-        const blueGrad = oscCtx.createLinearGradient(0, 0, 0, h);
-        blueGrad.addColorStop(0, 'rgba(88, 166, 255, 0.25)');
-        blueGrad.addColorStop(1, 'rgba(88, 166, 255, 0.02)');
-        oscCtx.fillStyle = blueGrad;
-        oscCtx.fill();
+            // Fill under throughput curve
+            oscCtx.lineTo((tpsHistory.length - 1) * step, h);
+            oscCtx.lineTo(0, h);
+            oscCtx.closePath();
+            const blueGrad = oscCtx.createLinearGradient(0, 0, 0, h);
+            blueGrad.addColorStop(0, 'rgba(88, 166, 255, 0.25)');
+            blueGrad.addColorStop(1, 'rgba(88, 166, 255, 0.02)');
+            oscCtx.fillStyle = blueGrad;
+            oscCtx.fill();
+        }
 
-        // 2. Contention Curve (Amber Overlaid Wave)
-        oscCtx.beginPath();
-        contentionHistory.forEach((cVal, i) => {
-            const x = i * step;
-            // Contention index 0..1 mapped to height
-            const y = h - (cVal * (h - 28)) - 14;
-            if (i === 0) oscCtx.moveTo(x, y);
-            else oscCtx.lineTo(x, y);
-        });
-        oscCtx.strokeStyle = '#d29922';
-        oscCtx.lineWidth = 1.8;
-        oscCtx.setLineDash([2, 3]);
-        oscCtx.stroke();
-        oscCtx.setLineDash([]);
+        // 2. CH2: Contention Curve (Amber Overlaid Wave)
+        if (scopeChannels.contention) {
+            oscCtx.beginPath();
+            contentionHistory.forEach((cVal, i) => {
+                const x = i * step;
+                const y = h - (cVal * (h - 28)) - 14;
+                if (i === 0) oscCtx.moveTo(x, y);
+                else oscCtx.lineTo(x, y);
+            });
+            oscCtx.strokeStyle = '#d29922';
+            oscCtx.lineWidth = 1.8;
+            oscCtx.setLineDash([2, 3]);
+            oscCtx.stroke();
+            oscCtx.setLineDash([]);
+        }
+
+        // 3. CH3: Abort Rate Curve (Rose Wave)
+        if (scopeChannels.abort) {
+            oscCtx.beginPath();
+            contentionHistory.forEach((cVal, i) => {
+                const x = i * step;
+                const arVal = Math.min(1.0, cVal * 0.4);
+                const y = h - (arVal * (h - 32)) - 10;
+                if (i === 0) oscCtx.moveTo(x, y);
+                else oscCtx.lineTo(x, y);
+            });
+            oscCtx.strokeStyle = '#f85149';
+            oscCtx.lineWidth = 1.6;
+            oscCtx.stroke();
+        }
 
         // Grid text overlays
         oscCtx.font = '10px "JetBrains Mono", monospace';
@@ -1225,6 +1464,68 @@
         oscCtx.fillStyle = '#d29922';
         oscCtx.fillText(`CONTENTION: ${((contentionHistory[contentionHistory.length - 1] || 0.04)).toFixed(2)}`, w - 140, 16);
     }
+
+    window.toggleScopeChannel = function (ch) {
+        scopeChannels[ch] = !scopeChannels[ch];
+        const btnId = ch === 'tps' ? 'btn-scope-ch1' : (ch === 'contention' ? 'btn-scope-ch2' : 'btn-scope-ch3');
+        const btn = document.getElementById(btnId);
+        if (btn) btn.classList.toggle('active', scopeChannels[ch]);
+        drawLargeOscilloscope({});
+    };
+
+    window.toggleScopeFreeze = function () {
+        isScopeFrozen = !isScopeFrozen;
+        const btn = document.getElementById('btn-scope-freeze');
+        if (btn) {
+            btn.textContent = isScopeFrozen ? '▶ RESUME' : '⏸ FREEZE';
+            btn.classList.toggle('frozen', isScopeFrozen);
+        }
+    };
+
+    // =========================================================================
+    // MODALS: PCB DEEP INSPECTOR & KEYBOARD SHORTCUTS
+    // =========================================================================
+
+    window.openPcbModal = function (pid) {
+        const modal = document.getElementById('pcb-modal-backdrop');
+        const pcb = allPcbsCache.find(p => p.pid === pid);
+        if (!modal || !pcb) return;
+
+        document.getElementById('pcb-modal-badge').textContent = `PCB #${pcb.pid} (${pcb.type})`;
+        document.getElementById('pcb-modal-title').textContent = `Process Control Block: ${pcb.type} Transfer`;
+        document.getElementById('pcb-modal-body').innerHTML = `
+            <h4>Process Control Block Registers & State</h4>
+            <div class="proc-grid" style="margin-top: 0.5rem;">
+                <div class="p-box"><span class="p-label">Process ID (PID)</span><span class="p-val">#${pcb.pid}</span></div>
+                <div class="p-box"><span class="p-label">Transaction Type</span><span class="p-val">${pcb.type}</span></div>
+                <div class="p-box"><span class="p-label">Lifecycle State</span><span class="p-val text-emerald">${pcb.state}</span></div>
+                <div class="p-box"><span class="p-label">Assigned Queue</span><span class="p-val">Q${pcb.current_queue || 1}</span></div>
+                <div class="p-box"><span class="p-label">Transfer Amount</span><span class="p-val text-emerald">${formatINR(pcb.amount || 0)}</span></div>
+                <div class="p-box"><span class="p-label">Accounts (Debit ➔ Credit)</span><span class="p-val">#${pcb.from_account} ➔ #${pcb.to_account}</span></div>
+                <div class="p-box"><span class="p-label">Burst Cycles Remaining</span><span class="p-val">${pcb.burst_time} / ${pcb.total_burst_time}</span></div>
+                <div class="p-box"><span class="p-label">Retry / Backoff Delay</span><span class="p-val">${pcb.retry_count} retries (${pcb.backoff_remaining || 0} ticks)</span></div>
+            </div>
+            <h4 style="margin-top: 1rem;">Operating System Lifecycle State Machine</h4>
+            <p>Process transitioned: <code>NEW ➔ READY ➔ RUNNING ➔ ${pcb.state}</code></p>
+            <div class="modal-code-block">Havender Monotonic Locks: Lock(Acc_${Math.min(pcb.from_account, pcb.to_account)}) &lt; Lock(Acc_${Math.max(pcb.from_account, pcb.to_account)})</div>
+        `;
+        modal.classList.add('open');
+    };
+
+    window.closePcbModal = function () {
+        const modal = document.getElementById('pcb-modal-backdrop');
+        if (modal) modal.classList.remove('open');
+    };
+
+    window.openShortcutsModal = function () {
+        const modal = document.getElementById('shortcuts-modal-backdrop');
+        if (modal) modal.classList.add('open');
+    };
+
+    window.closeShortcutsModal = function () {
+        const modal = document.getElementById('shortcuts-modal-backdrop');
+        if (modal) modal.classList.remove('open');
+    };
 
     // =========================================================================
     // INTERACTIVE THEORY & FORMAL MATH CONCEPT MODAL

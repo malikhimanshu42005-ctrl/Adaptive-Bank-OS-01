@@ -26,7 +26,7 @@
     --color-purple: #bc8cff;
     --color-purple-bg: rgba(188, 140, 255, 0.14);
 
-    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
     --radius-sm: 4px;
@@ -1769,4 +1769,489 @@ input:checked + .slider:before {
     border-radius: var(--radius-sm);
     border: 1px solid rgba(248, 81, 73, 0.3);
     white-space: nowrap;
+}
+
+/* ==========================================================================
+   MILESTONE FLOW TRACER (Page 1)
+   ========================================================================== */
+.pipeline-milestone-tracer {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.tracer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tracer-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+}
+
+.tracer-pid-badge {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--color-blue);
+    background: var(--color-blue-bg);
+    border: 1px solid rgba(88, 166, 255, 0.3);
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+}
+
+.tracer-steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    overflow-x: auto;
+}
+
+.tracer-step {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.65rem;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+.tracer-step.active {
+    opacity: 1;
+    border-color: var(--color-blue);
+    background: rgba(88, 166, 255, 0.08);
+}
+
+.step-num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.tracer-step.active .step-num {
+    background: var(--color-blue);
+    color: #fff;
+    border-color: var(--color-blue);
+}
+
+.step-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.step-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.step-sub {
+    font-size: 9.5px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+}
+
+.tracer-arrow {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
+/* ==========================================================================
+   ACCOUNTS FILTER & SETTLEMENT STRIP (Page 2)
+   ========================================================================== */
+.accounts-category-filter {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.acc-filter-btn {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.acc-filter-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.acc-filter-btn.active {
+    background: var(--color-blue-bg);
+    color: var(--color-blue);
+    border-color: var(--color-blue);
+    font-weight: 600;
+}
+
+.settlement-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.sum-item {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sum-label {
+    font-size: 9.5px;
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    letter-spacing: 0.4px;
+}
+
+.sum-val {
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+
+.bank-log-controls-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.log-search-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.log-count-indicator {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-dim);
+}
+
+/* ==========================================================================
+   OSCILLOSCOPE TOOLBAR & BENCHMARK HUD (Page 3)
+   ========================================================================== */
+.oscilloscope-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.scope-channels {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.scope-ch-btn {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.scope-ch-btn.ch-tps { color: var(--color-blue); }
+.scope-ch-btn.ch-tps.active { background: var(--color-blue-bg); border-color: var(--color-blue); }
+
+.scope-ch-btn.ch-contention { color: var(--color-amber); }
+.scope-ch-btn.ch-contention.active { background: var(--color-amber-bg); border-color: var(--color-amber); }
+
+.scope-ch-btn.ch-abort { color: var(--color-rose); }
+.scope-ch-btn.ch-abort.active { background: var(--color-rose-bg); border-color: var(--color-rose); }
+
+.scope-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.scope-btn-freeze {
+    font-size: 10px;
+    padding: 2px 8px;
+}
+
+.scope-btn-freeze.frozen {
+    background: var(--color-rose-bg);
+    color: var(--color-rose);
+    border-color: var(--color-rose);
+}
+
+.scope-status-readout {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+.benchmark-execution-hud {
+    background: var(--bg-page);
+    border: 1px solid var(--color-purple);
+    border-radius: var(--radius-sm);
+    padding: 0.65rem 0.85rem;
+    margin-top: 0.65rem;
+    margin-bottom: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    box-shadow: 0 0 10px rgba(188, 140, 255, 0.1);
+}
+
+.hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hud-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.hud-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-purple);
+    box-shadow: 0 0 6px var(--color-purple);
+    animation: benchmarkPulse 1s infinite;
+}
+
+.hud-scenario-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-purple);
+}
+
+.hud-timer {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-secondary);
+}
+
+.hud-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-subtle);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.hud-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--color-purple);
+    transition: width 0.3s ease;
+}
+
+.hud-metrics-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-dim);
+}
+
+/* ==========================================================================
+   HAVENDER DAG & WAL CONTROLS (Page 4)
+   ========================================================================== */
+.havender-dag-card {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.dag-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.havender-dag-nodes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.4rem;
+    padding: 0.4rem 0.5rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.dag-node {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 5px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--color-blue);
+}
+
+.dag-node.node-corp {
+    color: var(--color-purple);
+}
+
+.dag-node.node-vault {
+    color: var(--color-emerald);
+}
+
+.dag-arrow {
+    color: var(--text-dim);
+    font-size: 10px;
+}
+
+.wal-filter-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.wal-filter-tabs {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.wal-filter-btn {
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.wal-filter-btn.active {
+    background: var(--color-blue-bg);
+    color: var(--color-blue);
+    border-color: var(--color-blue);
+}
+
+/* ==========================================================================
+   CPU GANTT STRIP & SHORTCUTS MODAL (Page 5 & Global)
+   ========================================================================== */
+.gantt-strip-container {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 3px;
+    padding: 0.4rem;
+    background: var(--bg-page);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    min-height: 48px;
+    align-items: center;
+}
+
+.gantt-slot {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 4px 2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    transition: all 0.2s ease;
+}
+
+.gantt-slot.type-UPI { border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.08); color: var(--color-blue); }
+.gantt-slot.type-ATM { border-color: rgba(46, 160, 67, 0.4); background: rgba(46, 160, 67, 0.08); color: var(--color-emerald); }
+.gantt-slot.type-SALARY { border-color: rgba(210, 153, 34, 0.4); background: rgba(210, 153, 34, 0.08); color: var(--color-amber); }
+
+.gantt-slot-pid { font-weight: 700; }
+.gantt-slot-type { font-size: 8px; opacity: 0.8; }
+
+.shortcuts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 11.5px;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-page);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+kbd {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-blue);
+    min-width: 26px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Hover on PCB table rows */
+#tbody-pcb tr {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#tbody-pcb tr:hover {
+    background-color: var(--bg-subtle);
 }

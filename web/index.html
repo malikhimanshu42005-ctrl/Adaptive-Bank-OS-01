@@ -7,7 +7,7 @@
     <meta name="description" content="Adaptive Bank OS: Autonomous Concurrency Control, Strict 2PL, MLFQ Scheduling, and ACID Bank Database Management Dashboard.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -69,6 +69,9 @@
                 </div>
                 <button class="btn btn-secondary" id="btn-export-json" title="Export Transitions Log to JSON">
                     📥 EXPORT
+                </button>
+                <button class="btn btn-secondary" id="btn-shortcuts" title="Keyboard Shortcuts Cheat Sheet" onclick="openShortcutsModal()">
+                    ⌨ SHORTCUTS
                 </button>
             </div>
         </div>
@@ -348,6 +351,55 @@
                             <span class="text-emerald">Sum Conserved ≡ ₹12,300,400.00 (Δ = ₹0.00)</span>
                         </div>
                     </div>
+
+                    <!-- LIVE TRANSACTION MILESTONE FLOW TRACER -->
+                    <div class="pipeline-milestone-tracer" style="margin-top: 0.85rem;">
+                        <div class="tracer-header">
+                            <span class="tracer-title">LIVE TRANSACTION EXECUTION MILESTONES</span>
+                            <span class="tracer-pid-badge" id="tracer-pid-badge">Processing Tx #1001</span>
+                        </div>
+                        <div class="tracer-steps">
+                            <div class="tracer-step active" id="tracer-step-1">
+                                <span class="step-num">1</span>
+                                <div class="step-info">
+                                    <span class="step-name">Arranged Ingest</span>
+                                    <span class="step-sub">Scheduled Workload</span>
+                                </div>
+                            </div>
+                            <div class="tracer-arrow">➔</div>
+                            <div class="tracer-step active" id="tracer-step-2">
+                                <span class="step-num">2</span>
+                                <div class="step-info">
+                                    <span class="step-name">MLFQ Dispatch</span>
+                                    <span class="step-sub" id="tracer-queue-name">Queue 1 (SRTF)</span>
+                                </div>
+                            </div>
+                            <div class="tracer-arrow">➔</div>
+                            <div class="tracer-step active" id="tracer-step-3">
+                                <span class="step-num">3</span>
+                                <div class="step-info">
+                                    <span class="step-name">2PL Concurrency</span>
+                                    <span class="step-sub" id="tracer-locks-sub">Acc 1001 &lt; 1002</span>
+                                </div>
+                            </div>
+                            <div class="tracer-arrow">➔</div>
+                            <div class="tracer-step active" id="tracer-step-4">
+                                <span class="step-num">4</span>
+                                <div class="step-info">
+                                    <span class="step-name">WAL Write-Ahead</span>
+                                    <span class="step-sub" id="tracer-wal-sub">LSN Sequence</span>
+                                </div>
+                            </div>
+                            <div class="tracer-arrow">➔</div>
+                            <div class="tracer-step active" id="tracer-step-5">
+                                <span class="step-num">5</span>
+                                <div class="step-info">
+                                    <span class="step-name">Ledger Settle</span>
+                                    <span class="step-sub" id="tracer-settle-sub">Debit &amp; Credit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
         </div>
@@ -433,6 +485,14 @@
                             💡 <strong>What Bank Accounts Ledger does in simple terms:</strong> This is the destination bank database. When payments commit, sender balance is debited and receiver balance is credited simultaneously. Accounts 1005 (₹300) and 1008 (₹100) are low-balance accounts designed to trigger atomicity rollbacks.
                         </div>
 
+                        <!-- ACCOUNT CATEGORY FILTER TABS -->
+                        <div class="accounts-category-filter">
+                            <button class="acc-filter-btn active" data-acc-filter="ALL" onclick="filterAccounts('ALL')">All Accounts (12)</button>
+                            <button class="acc-filter-btn" data-acc-filter="RETAIL" onclick="filterAccounts('RETAIL')">Retail (8)</button>
+                            <button class="acc-filter-btn" data-acc-filter="CORPORATE" onclick="filterAccounts('CORPORATE')">Corporate (2)</button>
+                            <button class="acc-filter-btn" data-acc-filter="ATM_VAULT" onclick="filterAccounts('ATM_VAULT')">ATM Vaults (2)</button>
+                        </div>
+
                         <!-- BANK ACCOUNTS GRID -->
                         <div class="accounts-grid" id="accounts-cards-container">
                             <!-- Populated dynamically by app.js -->
@@ -450,13 +510,49 @@
                     </div>
                     <div class="header-action-group">
                         <button class="btn btn-secondary" id="btn-download-bank-log" onclick="downloadBankLog()">
-                            📥 DOWNLOAD BANK DATABASE LOG (JSON)
+                            📥 DOWNLOAD JSON
+                        </button>
+                        <button class="btn btn-secondary" id="btn-download-bank-log-csv" onclick="downloadBankLogCsv()">
+                            📊 EXPORT CSV
                         </button>
                     </div>
                 </div>
 
                 <div class="plain-concept-callout">
                     💡 <strong>What this log does in simple terms:</strong> This is the official transmission log sent to the core bank database. It proves every single transaction verified 2PL lock ordering, checked balance availability, wrote to Write-Ahead Log (WAL), and recorded sender balance before and after settlement.
+                </div>
+
+                <!-- SETTLEMENT VOLUME SUMMARY STRIP -->
+                <div class="settlement-summary-strip">
+                    <div class="sum-item">
+                        <span class="sum-label">TOTAL VOLUME TRANSMITTED:</span>
+                        <strong class="sum-val text-primary" id="settle-total-volume">₹0.00</strong>
+                    </div>
+                    <div class="sum-item">
+                        <span class="sum-label">COMMITTED SETTLEMENT:</span>
+                        <strong class="sum-val text-emerald" id="settle-committed-volume">₹0.00</strong>
+                    </div>
+                    <div class="sum-item">
+                        <span class="sum-label">ROLLBACK PROTECTED:</span>
+                        <strong class="sum-val text-rose" id="settle-rollback-volume">₹0.00</strong>
+                    </div>
+                    <div class="sum-item">
+                        <span class="sum-label">INVARIANT CONSERVATION:</span>
+                        <strong class="sum-val text-emerald">100.00% (Δ ₹0.00)</strong>
+                    </div>
+                </div>
+
+                <!-- LOG SEARCH & FILTER CONTROLS -->
+                <div class="bank-log-controls-strip">
+                    <div class="log-search-group">
+                        <input type="text" id="bank-log-search" placeholder="Search PID or Account #..." class="table-input" oninput="filterBankLog()">
+                        <select id="bank-log-status-filter" class="table-select" onchange="filterBankLog()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="COMMITTED">COMMITTED Only</option>
+                            <option value="ROLLED_BACK">ROLLED_BACK Only</option>
+                        </select>
+                    </div>
+                    <span class="log-count-indicator" id="log-count-indicator">Showing 0 records</span>
                 </div>
 
                 <div class="table-container" style="margin-top: 0.75rem;">
@@ -510,6 +606,25 @@
 
                 <div class="plain-concept-callout">
                     💡 <strong>What this does:</strong> Click any of the 5 scenario buttons below to inject specific real-world banking traffic surges into the system and watch how the MLFQ scheduler, 2PL locks, and ACID engine respond dynamically!
+                </div>
+
+                <!-- LIVE BENCHMARK EXECUTION HUD -->
+                <div class="benchmark-execution-hud" id="benchmark-execution-hud" style="display: none;">
+                    <div class="hud-top">
+                        <div class="hud-title-group">
+                            <span class="hud-pulse-dot"></span>
+                            <span class="hud-scenario-title" id="hud-scenario-title">SCENARIO RUNNING</span>
+                        </div>
+                        <span class="hud-timer" id="hud-timer">Duration: 4.5s remaining</span>
+                    </div>
+                    <div class="hud-progress-bar">
+                        <div class="hud-progress-fill" id="hud-progress-fill"></div>
+                    </div>
+                    <div class="hud-metrics-row">
+                        <span>Active Injected Load: <strong id="hud-active-injection">0 txns</strong></span>
+                        <span>Peak Observed TPS: <strong class="text-blue" id="hud-peak-tps">0.0 TPS</strong></span>
+                        <span>Contention Suppression: <strong class="text-emerald" id="hud-mitigation-rate">100% Adaptive Protected</strong></span>
+                    </div>
                 </div>
 
                 <div class="benchmark-cards-grid">
@@ -573,6 +688,19 @@
 
                     <div class="plain-concept-callout">
                         💡 <strong>What Oscilloscope does in simple terms:</strong> Graphs the real-time transactions committed per second over a 30-sample rolling timeline.
+                    </div>
+
+                    <!-- HARDWARE-STYLE OSCILLOSCOPE TOOLBAR -->
+                    <div class="oscilloscope-toolbar">
+                        <div class="scope-channels">
+                            <button class="scope-ch-btn ch-tps active" id="btn-scope-ch1" onclick="toggleScopeChannel('tps')">● CH1: TPS</button>
+                            <button class="scope-ch-btn ch-contention active" id="btn-scope-ch2" onclick="toggleScopeChannel('contention')">● CH2: Contention</button>
+                            <button class="scope-ch-btn ch-abort active" id="btn-scope-ch3" onclick="toggleScopeChannel('abort')">● CH3: Abort %</button>
+                        </div>
+                        <div class="scope-actions">
+                            <button class="btn btn-control scope-btn-freeze" id="btn-scope-freeze" onclick="toggleScopeFreeze()">⏸ FREEZE</button>
+                            <span class="scope-status-readout" id="scope-status-readout">TRIG: AUTO • 50ms/DIV</span>
+                        </div>
                     </div>
 
                     <canvas id="large-oscilloscope-canvas" width="600" height="180" style="width: 100%; height: 180px; margin-top: 0.5rem; background: var(--bg-page); border: 1px solid var(--border-color); border-radius: var(--radius-sm);"></canvas>
@@ -725,6 +853,29 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- HAVENDER MONOTONIC RESOURCE ORDERING (DAG) VISUALIZER -->
+                <div class="havender-dag-card" style="margin-top: 1rem;">
+                    <div class="sub-header-bar">
+                        <span>HAVENDER TOTAL MONOTONIC RESOURCE ORDERING GRAPH (DAG)</span>
+                        <span class="text-emerald">Circular Wait (Coffman Condition 4) = Mathematically Impossible</span>
+                    </div>
+                    <p class="dag-desc">Transactions sort lock requests in strictly ascending numerical order (<code>Acc_A &lt; Acc_B</code>). Because all edges in the Wait-For Graph (WFG) point strictly rightward along this monotonic topological sort, a directed cycle cannot exist: <code>∃ Cycle ⟹ Acc_k &lt; Acc_k (Contradiction)</code>.</p>
+                    <div class="havender-dag-nodes">
+                        <span class="dag-node">Acc 1001</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1002</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1003</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1004</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1005</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1006</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1007</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node">Acc 1008</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node node-corp">Acc 2001</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node node-corp">Acc 2002</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node node-vault">Acc 5001</span> <span class="dag-arrow">➔</span>
+                        <span class="dag-node node-vault">Acc 5002</span>
+                    </div>
+                </div>
             </section>
 
             <!-- SECTION B: ACID INVARIANTS & ATOMICITY ENGINE -->
@@ -795,6 +946,18 @@
                         <span>LIVE WRITE-AHEAD LOG (WAL) AUDIT STREAM</span>
                         <span class="wal-indicator"><span class="rec-dot"></span> REAL-TIME PERSISTENCE LOG</span>
                     </div>
+
+                    <!-- WAL OPERATION FILTER & SEARCH -->
+                    <div class="wal-filter-strip">
+                        <div class="wal-filter-tabs">
+                            <button class="wal-filter-btn active" data-wal-op="ALL" onclick="filterWal('ALL')">All Operations</button>
+                            <button class="wal-filter-btn" data-wal-op="COMMIT" onclick="filterWal('COMMIT')">COMMIT</button>
+                            <button class="wal-filter-btn" data-wal-op="ROLLBACK" onclick="filterWal('ROLLBACK')">ROLLBACK</button>
+                            <button class="wal-filter-btn" data-wal-op="DEBIT" onclick="filterWal('DEBIT')">DEBIT / CREDIT</button>
+                        </div>
+                        <input type="text" id="wal-search-input" placeholder="Search LSN or PID..." class="table-input" oninput="filterWal()">
+                    </div>
+
                     <table class="data-table" id="table-wal">
                         <thead>
                             <tr>
@@ -959,12 +1122,29 @@
                 </div>
             </section>
 
+            <!-- REAL-TIME CPU DISPATCH GANTT TIMELINE STRIP -->
+            <section class="panel gantt-timeline-panel" style="margin-top: 1.25rem;">
+                <div class="panel-header">
+                    <div class="p-title-group">
+                        <span class="p-badge bg-blue">CPU GANTT STRIP</span>
+                        <h3>Real-Time CPU Execution Gantt Timeline (Last 16 Dispatches)</h3>
+                    </div>
+                    <span class="panel-sub" id="gantt-time-range">Chronological Dispatch Slots</span>
+                </div>
+                <div class="plain-concept-callout">
+                    💡 <strong>What CPU Gantt Strip does:</strong> Visualizes the exact execution history of the CPU core tick-by-tick, highlighting how short interactive UPI &amp; ATM transactions preempt long-running Corporate Salary clearing batches.
+                </div>
+                <div class="gantt-strip-container" id="gantt-strip-container">
+                    <!-- Populated dynamically by app.js -->
+                </div>
+            </section>
+
             <!-- PROCESS CONTROL BLOCK (PCB) MONITOR TABLE -->
             <section class="panel pcb-table-panel" style="margin-top: 1.25rem;">
                 <div class="panel-header">
                     <div class="p-title-group">
                         <span class="p-badge bg-blue">PCB MONITOR</span>
-                        <h3>Process Control Block (PCB) Table & Lifecycle Inspector</h3>
+                        <h3>Process Control Block (PCB) Table &amp; Lifecycle Inspector</h3>
                     </div>
                     <div class="pcb-filter-controls">
                         <input type="text" id="pcb-search" placeholder="Search PID or Account..." class="table-input">
@@ -980,7 +1160,7 @@
                 </div>
 
                 <div class="plain-concept-callout">
-                    💡 <strong>What PCB Table does in simple terms:</strong> Every banking transfer is treated as a Process Control Block (PCB) with full OS lifecycle: <code>NEW ➔ READY ➔ RUNNING ➔ WAITING ➔ TERMINATED</code>.
+                    💡 <strong>What PCB Table does in simple terms:</strong> Every banking transfer is treated as a Process Control Block (PCB) with full OS lifecycle: <code>NEW ➔ READY ➔ RUNNING ➔ WAITING ➔ TERMINATED</code>. <em>Click any row below to open the PCB Deep Inspector.</em>
                 </div>
 
                 <div class="table-container" style="margin-top: 0.75rem;">
@@ -1040,6 +1220,54 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeConceptModal()">Close Inspector</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROCESS CONTROL BLOCK (PCB) DETAILS INSPECTOR MODAL -->
+    <div class="concept-modal-backdrop" id="pcb-modal-backdrop" onclick="closePcbModal(event)">
+        <div class="concept-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="mh-title-group">
+                    <span class="p-badge bg-blue" id="pcb-modal-badge">PCB #1001</span>
+                    <h3 id="pcb-modal-title">Process Control Block Deep Inspector</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closePcbModal()">✕</button>
+            </div>
+            <div class="modal-body" id="pcb-modal-body">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePcbModal()">Close Inspector</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEYBOARD SHORTCUTS CHEAT SHEET MODAL -->
+    <div class="concept-modal-backdrop" id="shortcuts-modal-backdrop" onclick="closeShortcutsModal(event)">
+        <div class="concept-modal-content" style="max-width: 520px;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="mh-title-group">
+                    <span class="p-badge bg-purple">KEYBOARD</span>
+                    <h3>Console Shortcuts Cheat Sheet</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closeShortcutsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-row"><kbd>1</kbd> <span>Switch to Architecture &amp; Pipeline</span></div>
+                    <div class="shortcut-row"><kbd>2</kbd> <span>Switch to Scheduled DB ➔ Bank DB</span></div>
+                    <div class="shortcut-row"><kbd>3</kbd> <span>Switch to Oscilloscope &amp; Benchmarks</span></div>
+                    <div class="shortcut-row"><kbd>4</kbd> <span>Switch to DBMS Concepts (2PL &amp; ACID)</span></div>
+                    <div class="shortcut-row"><kbd>5</kbd> <span>Switch to OS Kernel Concepts (MLFQ &amp; PCB)</span></div>
+                    <div class="shortcut-row"><kbd>Space</kbd> <span>Pause / Resume Simulation Engine</span></div>
+                    <div class="shortcut-row"><kbd>M</kbd> <span>Toggle Adaptive MD-ACC / Baseline Mode</span></div>
+                    <div class="shortcut-row"><kbd>?</kbd> <span>Open / Close Keyboard Shortcuts Cheat Sheet</span></div>
+                    <div class="shortcut-row"><kbd>Esc</kbd> <span>Close Any Open Modal</span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeShortcutsModal()">Close</button>
             </div>
         </div>
     </div>
