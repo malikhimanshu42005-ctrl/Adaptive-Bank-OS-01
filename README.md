@@ -19,6 +19,12 @@
   - [Storage Engine](#storage-engine)
   - [Workload Generator](#workload-generator)
 - [Web Dashboard](#web-dashboard)
+  - [Global Navigation & Keyboard Shortcuts](#global-navigation--keyboard-shortcuts)
+  - [Page 1: Architecture & Execution Pipeline](#page-1-architecture--execution-pipeline)
+  - [Page 2: Scheduled DB ➔ Bank DB Ledger](#page-2-scheduled-db--bank-db-ledger)
+  - [Page 3: System Oscilloscope & Live Benchmarks](#page-3-system-oscilloscope--live-benchmarks)
+  - [Page 4: DBMS Architecture (2PL & ACID)](#page-4-dbms-architecture-2pl--acid)
+  - [Page 5: OS Kernel Architecture (MLFQ & PCB)](#page-5-os-kernel-architecture-mlfq--pcb)
 - [REST API](#rest-api)
 - [Database Schema](#database-schema)
 - [Building & Running](#building--running)
@@ -41,17 +47,25 @@ The system generates **176,000 transactions** with realistic burst patterns, sch
 | Feature | Description |
 |---|---|
 | **176K Transaction Workload** | Bimodal burst clustering with 20 Gaussian peak centers across 8,000 simulation ticks |
-| **MLFQ Scheduling** | Queue 1 (SRTF for UPI/ATM) + Queue 2 (Round Robin for Salary batches) |
-| **Anti-Starvation Aging** | Salary transactions promoted from Q2 → Q1 after configurable threshold ticks |
-| **Deadlock-Free Locking** | Havender's Principle — strict monotonic lock ordering with bounded wait timeout (Tw) |
+| **MLFQ Scheduling** | Queue 1 (SRTF for UPI/ATM) + Queue 2 (Round Robin for Salary batches) with dynamic preemption |
+| **Anti-Starvation Aging** | Starvation-free priority boosting: Salary transactions waiting ≥ `X` ticks in Q2 are promoted to Q1 |
+| **Deadlock-Free Locking** | Strict monotonic lock ordering via Havender's Principle with bounded wait timeout ($T_w$) |
+| **Havender DAG Visualizer** | Interactive visual directed acyclic graph demonstrating zero-cycle lock acquisition ($A_1 < A_2$) |
 | **MD-ACC Middleware** | Multi-Dimensional Adaptive Concurrency Control with hysteresis-gated contention levels |
-| **ML Contention Prediction** | Lightweight TCN (1D Conv) predicting contention 30ms ahead from 6-feature telemetry |
-| **Proactive Quota Management** | Dynamic Q2 quantum compression based on predicted contention regime |
-| **ACID Storage Engine** | Write-Ahead Logging (WAL) with debit-credit atomicity and insufficient-funds rollback |
-| **Exponential Backoff** | Adaptive retry with jitter: `B₀ × 2^retry + (PID % 3)`, capped at 32 ticks |
-| **Comparison Mode** | Toggle between `ADAPTIVE_MDACC` and `STANDARD_BASELINE` to measure improvement |
-| **Real-Time Dashboard** | Live web UI with process state visualization, telemetry charts, and queue inspection |
-| **REST API** | Full HTTP API for status, state, queues, transitions, speed control, and data export |
+| **ML Contention Prediction** | Lightweight TCN (1D Conv) predicting contention 30ms ahead from 6-feature telemetry window |
+| **Proactive Quota Management** | Dynamic Q2 quantum compression based on predicted traffic regime (`QUIET`, `MODERATE`, `STORM`, `SURGE`) |
+| **ACID Storage Engine** | Write-Ahead Logging (WAL) with debit-credit atomicity, balance invariants, and insufficient-funds rollback |
+| **Exponential Backoff** | Adaptive retry with jitter: $B_0 \times 2^{\text{retry}} + (\text{PID} \bmod 3)$, capped at 32 ticks |
+| **Comparison Mode** | Real-time toggle between `ADAPTIVE_MDACC` and `STANDARD_BASELINE` to observe abort storms |
+| **Multi-Page Mission Control** | 5 dedicated tabbed consoles built with geometric `Plus Jakarta Sans` and tabular `JetBrains Mono` |
+| **Milestone Flow Tracer** | Real-time visual tracking of transactions moving through Ingest → MLFQ → 2PL → ACID → Settlement |
+| **Hardware Oscilloscope** | Tri-channel signal monitor (`CH1 TPS`, `CH2 Contention`, `CH3 Abort Rate`) with trace freeze and live HUD |
+| **Live Benchmark Suite** | 5 executable stress scenarios: `Flash Sale`, `Salary Burst`, `Hotspot Contention`, `Insufficient Funds`, `Baseline Shootout` |
+| **CPU Execution Gantt Strip** | 16-slice sliding window visualizer of CPU time slices color-coded by transaction type (`UPI`, `ATM`, `SALARY`) |
+| **PCB Deep Inspector** | Modal inspector displaying process registers, scheduling metrics, lock sets, and state transition logs |
+| **Official Bank DB Log** | Verifiable transmission ledger with full-text search, status filters, and dual export (`JSON` + `CSV`) |
+| **Keyboard Shortcuts** | Rapid keyboard navigation (`1`–`5`, `Space`, `M`, `?`, `Esc`) for hands-on presentations |
+| **REST API** | Full HTTP API for status, state, queues, accounts, WAL, benchmarks, speed control, and data export |
 
 ---
 
@@ -204,23 +218,114 @@ The workload generator ([`include/workload_generator.hpp`](include/workload_gene
 
 ## Web Dashboard
 
-The real-time mission control web dashboard (`web/`) features a clean, project-based engineering console design:
+The web dashboard (`web/`) is an interactive mission control console designed specifically for technical demonstrations, academic viva, and systems engineering presentations. It pairs geometric, high-contrast typography (**Plus Jakarta Sans**) with clean tabular numbers and hexadecimal telemetry (**JetBrains Mono**).
 
-- **Interactive Running Execution Pipeline Diagram** — 5 interactive stages representing end-to-end processing with click-to-inspect theorem modals:
-  1. *Scheduled Ingest DB* (Arranged workload batches)
-  2. *OS Kernel Scheduler* (MLFQ: Q1 SRTF + Q2 Round Robin + Aging)
-  3. *2PL Concurrency Control* (Strict Two-Phase Locking + Havender Monotonic Ordering)
-  4. *ACID & Atomicity Engine* (All-or-Nothing validation & WAL Stream)
-  5. *Core Bank Accounts DB* (12 managed accounts ledger)
-- **5 Dedicated Professional Tabbed Pages**:
-  1. *Architecture & Pipeline*: Live interactive diagram, CPU Core Dispatcher (always active), and in-flight transmission bridge.
-  2. *Scheduled DB ➔ Bank DB*: Real-time side-by-side view showing chronologically arranged pending transactions dispatched to update individual bank accounts, plus the **Official Bank Database Transmission & Settlement Log** with export.
-  3. *Oscilloscope & Benchmarks*: High-resolution dual-wave oscilloscope (Throughput & Contention) and **5 Clickable Live Benchmark Scenarios** (`Flash Sale`, `Salary Burst`, `Hotspot Contention`, `Insufficient Funds`, `Baseline Shootout`).
-  4. *DBMS (2PL & ACID)*: Growing/Shrinking phase telemetry, Havender monotonic ordering proof, ACID pillars, and live WAL stream with LSNs.
-  5. *OS Kernel (MLFQ & PCB)*: Queue 1 (SRTF), Queue 2 (Round Robin), Waiting Pool, Aging Promotions, and searchable PCB lifecycle inspector.
-- **Plain-Language Explanations on Every Block**: Simple, accessible 1-2 sentence callouts explaining exactly what each subsystem does.
-- **Guaranteed Non-Empty Display**: CPU Dispatcher and MLFQ queues are guaranteed never empty at any time for presentations and viva.
-- **Official Bank Database Transmission Log**: Full audit stream verifying 2PL lock verification, ACID balance check, WAL LSN, and balances before/after settlement, exportable to JSON.
+### Global Navigation & Keyboard Shortcuts
+
+Press `?` anywhere in the dashboard or click the **[⌨ Shortcuts]** button in the header to open the keyboard cheat sheet:
+
+| Key | Action | Description |
+|---|---|---|
+| `1` | Switch to Page 1 | **Architecture & Pipeline**: Live interactive flow diagram & CPU dispatcher |
+| `2` | Switch to Page 2 | **Scheduled DB ➔ Bank DB**: Account ledger, settlement summary, and transmission log |
+| `3` | Switch to Page 3 | **Oscilloscope & Benchmarks**: Tri-channel signal oscilloscope & live benchmark HUD |
+| `4` | Switch to Page 4 | **DBMS (2PL & ACID)**: Havender DAG visualizer, lock telemetry, and WAL stream |
+| `5` | Switch to Page 5 | **OS Kernel (MLFQ & PCB)**: Execution Gantt strip, queues, and PCB deep inspector |
+| `Space` | Pause / Resume | Toggle simulation clock execution |
+| `M` | Mode Toggle | Switch between `ADAPTIVE_MDACC` and `STANDARD_BASELINE` |
+| `Esc` | Close Modal | Dismiss any active theorem, PCB inspector, or shortcuts modal dialog |
+
+---
+
+### Page 1: Architecture & Execution Pipeline
+
+- **Interactive 5-Stage Execution Pipeline Diagram**: Clickable flowchart depicting end-to-end transaction processing. Clicking any stage opens an in-depth computer science theorem modal:
+  1. *Scheduled Ingest DB* — Arranged workload batches, arrival velocity, and priority tagging.
+  2. *OS Kernel Scheduler* — MLFQ multi-level queuing with SRTF preemption and anti-starvation aging.
+  3. *2PL Concurrency Control* — Strict Two-Phase Locking with Havender monotonic ordering deadlock prevention.
+  4. *ACID & Atomicity Engine* — All-or-nothing rollback, balance invariance, and Write-Ahead Log sequencing.
+  5. *Core Bank Accounts DB* — 12 managed accounts ledger with live balances and lock status.
+- **Live Transaction Milestone Flow Tracer**: Real-time visual progress pill strip tracking in-flight transactions as they advance through `NEW` ➔ `INGEST` ➔ `MLFQ` ➔ `2PL` ➔ `ACID` ➔ `SETTLED`.
+- **CPU Core Dispatcher**: Real-time display of the currently executing process, remaining burst ticks, quantum allocation, and memory registers.
+- **Guaranteed Non-Empty Invariant**: The CPU Dispatcher and MLFQ queues are guaranteed to remain active and populated at all times for seamless presentation demos.
+
+---
+
+### Page 2: Scheduled DB ➔ Bank DB Ledger
+
+- **Account Category Filter Tabs**: Instantly filter the 12 core bank accounts by category:
+  - `ALL` (12 Accounts)
+  - `RETAIL` (Accounts 1001–1008, including low-balance test accounts)
+  - `CORPORATE` (Accounts 2001–2002, treasury accounts)
+  - `ATM VAULT` (Accounts 3001–3002, cash reserve vaults)
+- **Settlement Volume Summary Bar**: Dynamic telemetry strip aggregating:
+  - *Total Ledger Balance*: Live sum of all accounts (strictly conserved at \$12,300,000.00).
+  - *Total Debited*: Cumulative debits executed across all accounts.
+  - *Total Credited*: Cumulative credits settled across all accounts.
+- **Scheduled Ingest Workload Queue**: Chronologically ordered transaction arrivals awaiting dispatch from the workload generator.
+- **Official Bank Database Transmission & Settlement Log**:
+  - Verifiable settlement audit stream logging PID, source/destination accounts, amount, 2PL lock verification, ACID balance check, WAL LSN, and before/after balances.
+  - **Live Search**: Instant full-text filtering by PID, Account ID, or status.
+  - **Status Filters**: Quick toggles for `ALL`, `SETTLED`, and `ROLLED_BACK`.
+  - **Dual Export**:
+    - **Download JSON**: Fetches server-generated `/api/bank-db-log/export` for machine processing.
+    - **Export CSV**: Client-side tabular CSV export formatted for spreadsheet analysis.
+
+---
+
+### Page 3: System Oscilloscope & Live Benchmarks
+
+- **Hardware-Style Oscilloscope Toolbar**:
+  - **Channel Toggles**: Selectively enable/disable trace channels:
+    - `CH1 TPS` (Neon Green, scale: 0–100 transactions/sec)
+    - `CH2 Contention` (Warning Amber, scale: 0–1.0 composite index)
+    - `CH3 Abort Rate` (Crimson Red, scale: 0–50% transaction aborts)
+  - **Freeze Trace**: Hardware freeze button that pauses the oscilloscope canvas without stopping the simulation, allowing forensic analysis of transient contention spikes.
+- **5 Interactive Clickable Live Benchmark Scenarios**:
+  - `⚡ Flash Sale`: Injects a burst of 60 rapid UPI micro-transactions targeting retail merchants.
+  - `💼 Salary Burst`: Dispatches a heavy corporate payroll batch into Q2 to demonstrate quantum compression and aging promotions.
+  - `🔥 Hotspot Contention`: Forces 40 simultaneous transfers to target the same two retail accounts to demonstrate 2PL lock arbitration and backoff.
+  - `⚠️ Insufficient Funds`: Dispatches overdraft-triggering transactions against low-balance accounts to demonstrate ACID rollback and balance invariance.
+  - `⚔️ Baseline Shootout`: Switches to `STANDARD_BASELINE` (unthrottled, zero backoff) under high contention to provoke abort storms, then returns to `ADAPTIVE_MDACC`.
+- **Live Benchmark Execution HUD**: Floating progress display showing active scenario name, elapsed execution timer, and animated progress bar.
+
+---
+
+### Page 4: DBMS Architecture (2PL & ACID)
+
+- **2PL Concurrency Control Telemetry**: Live metrics tracking active locks held, total lock acquisitions (Growing Phase), total lock releases (Shrinking Phase), and average lock hold duration.
+- **Havender Monotonic Resource Ordering DAG Visualizer**:
+  - Interactive visual Directed Acyclic Graph illustrating strict ascending lock acquisition ($A_{\text{source}} < A_{\text{dest}}$).
+  - Graphically demonstrates the mathematical impossibility of circular wait conditions ($P_1 \to P_2 \to P_1$).
+- **ACID Pillars & Ledger Invariants**:
+  - *Atomicity*: All-or-nothing guarantee with automatic debit/credit rollback.
+  - *Consistency*: Global ledger conservation invariant ($\sum_{i=1}^{12} B_i = \$12,300,000.00, \Delta = \$0.00$).
+  - *Isolation*: Strict Two-Phase Locking ensuring conflict serializability.
+  - *Durability*: Monotonic Write-Ahead Log with persistent Log Sequence Numbers (LSN).
+- **Live Write-Ahead Log (WAL) Stream**:
+  - Real-time audit log of database operations (`PREPARE`, `DEBIT`, `CREDIT`, `COMMIT`, `ABORT`).
+  - **WAL Operation Filter Strip**: Filter WAL records by type (`ALL`, `PREPARE`, `DEBIT`, `CREDIT`, `COMMIT`, `ABORT`).
+
+---
+
+### Page 5: OS Kernel Architecture (MLFQ & PCB)
+
+- **Real-Time CPU Execution Gantt Timeline Strip**:
+  - 16-slot sliding window visualizer of CPU time slices.
+  - Color-coded by process type: **UPI** (Teal), **ATM** (Indigo), and **SALARY** (Violet).
+  - Displays PID badge and burst status in each execution slice.
+- **Multi-Level Feedback Queues**:
+  - *Queue 1 (High Priority)*: Shortest Remaining Time First (SRTF) for interactive UPI/ATM jobs.
+  - *Queue 2 (Low Priority)*: Round Robin with dynamic quantum compression for Salary batches.
+  - *Waiting Pool*: Processes awaiting account locks with exponential backoff timers.
+  - *Anti-Starvation Aging Engine*: Counter tracking promotions from Q2 to Q1.
+- **PCB Deep Inspector Modal**:
+  - Click any process in the queues or search by PID to open the inspector dialog.
+  - Displays hardware registers (PID, State, Priority, Quantum Remaining, Ticks in Queue, Monotonic Lock Set).
+  - Displays financial transfer payload (Source, Destination, Amount).
+  - Displays full historical state transition timeline with kernel reason codes.
+- **Plain-Language Explanations on Every Block**:
+  - Every card and panel includes clear, plain-language summaries explaining the underlying operating system and database concepts.
 
 ---
 
