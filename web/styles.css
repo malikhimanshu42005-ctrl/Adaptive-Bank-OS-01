@@ -16,7 +16,9 @@
     --text-dim: #6e7681;
 
     --color-blue: #58a6ff;
-    --color-blue-bg: rgba(56, 139, 253, 0.12);
+    --color-blue-bg: rgba(234, 179, 8, 0.16);
+    --color-yellow: #eab308;
+    --color-yellow-bg: rgba(234, 179, 8, 0.16);
     --color-emerald: #2ea043;
     --color-emerald-bg: rgba(46, 160, 67, 0.14);
     --color-amber: #d29922;
@@ -127,10 +129,10 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 10px;
     font-weight: 600;
     background: var(--color-blue-bg);
-    color: var(--color-blue);
+    color: var(--color-yellow);
     padding: 1px 5px;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(88, 166, 255, 0.25);
+    border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
 .lab-badge {
@@ -586,7 +588,7 @@ input:checked + .slider:before {
     position: absolute;
     width: 14px;
     height: 100%;
-    background: var(--color-blue);
+    background: var(--color-yellow);
     animation: flowPulse 1.4s infinite linear;
 }
 
@@ -731,7 +733,7 @@ input:checked + .slider:before {
 
 .fill-purple { background: var(--color-purple); }
 .fill-amber { background: var(--color-amber); }
-.fill-blue { background: var(--color-blue); }
+.fill-blue { background: var(--color-yellow); }
 
 .locks-held-box {
     display: flex;
@@ -1348,8 +1350,10 @@ input:checked + .slider:before {
 .text-rose { color: var(--color-rose); }
 .text-amber { color: var(--color-amber); }
 .text-blue { color: var(--color-blue); }
+.text-yellow { color: var(--color-yellow); }
 
-.bg-blue { background: var(--color-blue) !important; }
+.bg-blue { background: var(--color-yellow) !important; color: #0d1117 !important; }
+.bg-yellow { background: var(--color-yellow) !important; color: #0d1117 !important; }
 .bg-amber { background: var(--color-amber) !important; }
 .bg-purple { background: var(--color-purple) !important; }
 .bg-emerald { background: var(--color-emerald) !important; }
@@ -1385,7 +1389,7 @@ input:checked + .slider:before {
     padding: 1px 6px;
     border-radius: var(--radius-sm);
 }
-.type-pill.UPI { background: var(--color-blue-bg); color: var(--color-blue); border: 1px solid rgba(88, 166, 255, 0.3); }
+.type-pill.UPI { background: var(--color-blue-bg); color: var(--color-yellow); border: 1px solid rgba(234, 179, 8, 0.35); }
 .type-pill.ATM { background: var(--color-emerald-bg); color: var(--color-emerald); border: 1px solid rgba(46, 160, 67, 0.3); }
 .type-pill.SALARY { background: var(--color-purple-bg); color: var(--color-purple); border: 1px solid rgba(188, 140, 255, 0.3); }
 
@@ -1656,9 +1660,9 @@ input:checked + .slider:before {
    ========================================================================== */
 
 .plain-concept-callout {
-    background: rgba(88, 166, 255, 0.06);
-    border: 1px solid rgba(88, 166, 255, 0.2);
-    border-left: 3px solid var(--color-blue);
+    background: rgba(234, 179, 8, 0.08);
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    border-left: 3px solid var(--color-yellow);
     border-radius: var(--radius-sm);
     padding: 0.55rem 0.85rem;
     font-size: 11.5px;
@@ -1810,9 +1814,9 @@ input:checked + .slider:before {
     font-family: var(--font-mono);
     font-size: 10.5px;
     font-weight: 600;
-    color: var(--color-blue);
+    color: var(--color-yellow);
     background: var(--color-blue-bg);
-    border: 1px solid rgba(88, 166, 255, 0.3);
+    border: 1px solid rgba(234, 179, 8, 0.35);
     padding: 2px 7px;
     border-radius: var(--radius-sm);
 }
@@ -1839,8 +1843,8 @@ input:checked + .slider:before {
 
 .tracer-step.active {
     opacity: 1;
-    border-color: var(--color-blue);
-    background: rgba(88, 166, 255, 0.08);
+    border-color: var(--color-yellow);
+    background: rgba(234, 179, 8, 0.12);
 }
 
 .step-num {
@@ -1859,9 +1863,9 @@ input:checked + .slider:before {
 }
 
 .tracer-step.active .step-num {
-    background: var(--color-blue);
-    color: #fff;
-    border-color: var(--color-blue);
+    background: var(--color-yellow);
+    color: #0d1117;
+    border-color: var(--color-yellow);
 }
 
 .step-info {
@@ -2216,7 +2220,7 @@ input:checked + .slider:before {
     transition: all 0.2s ease;
 }
 
-.gantt-slot.type-UPI { border-color: rgba(88, 166, 255, 0.4); background: rgba(88, 166, 255, 0.08); color: var(--color-blue); }
+.gantt-slot.type-UPI { border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.12); color: var(--color-yellow); }
 .gantt-slot.type-ATM { border-color: rgba(46, 160, 67, 0.4); background: rgba(46, 160, 67, 0.08); color: var(--color-emerald); }
 .gantt-slot.type-SALARY { border-color: rgba(210, 153, 34, 0.4); background: rgba(210, 153, 34, 0.08); color: var(--color-amber); }
 
