@@ -51,6 +51,14 @@ body {
     flex-direction: column;
 }
 
+/* Base Headings - Bold Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+}
+
 /* ==========================================================================
    HEADER & NAVIGATION BAR
    ========================================================================== */
@@ -109,7 +117,7 @@ body {
 
 .brand-title-row h1 {
     font-size: 1.05rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.5px;
     color: var(--text-primary);
 }
@@ -437,7 +445,7 @@ input:checked + .slider:before {
 
 .p-title-group h2, .p-title-group h3 {
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
@@ -733,7 +741,7 @@ input:checked + .slider:before {
 
 .locks-title {
     font-size: 10.5px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-dim);
     letter-spacing: 0.3px;
 }
@@ -840,7 +848,7 @@ input:checked + .slider:before {
 
 .vh-text h2 {
     font-size: 1.05rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 0.2rem;
 }
@@ -1025,7 +1033,7 @@ input:checked + .slider:before {
 
 .concept-card h4 {
     font-size: 0.88rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
@@ -1051,7 +1059,7 @@ input:checked + .slider:before {
     align-items: center;
     font-family: var(--font-mono);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-dim);
     margin-bottom: 0.5rem;
 }
@@ -1088,7 +1096,7 @@ input:checked + .slider:before {
 
 .acid-body h4 {
     font-size: 0.88rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
@@ -1162,7 +1170,7 @@ input:checked + .slider:before {
 .tag-wait { background: var(--color-rose-bg); color: var(--color-rose); }
 
 .lane-name {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
     color: var(--text-primary);
 }
@@ -1501,7 +1509,7 @@ input:checked + .slider:before {
     gap: 0.15rem;
 }
 .bn-title {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
     color: var(--text-primary);
 }
@@ -1583,7 +1591,7 @@ input:checked + .slider:before {
 }
 .mh-title-group h3 {
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-primary);
 }
 .modal-close-btn {
@@ -1610,7 +1618,7 @@ input:checked + .slider:before {
 }
 .modal-body h4 {
     font-size: 0.92rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--color-blue);
     margin-top: 0.35rem;
 }
@@ -1704,7 +1712,7 @@ input:checked + .slider:before {
 
 .benchmark-card .b-info h4 {
     font-size: 0.88rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
