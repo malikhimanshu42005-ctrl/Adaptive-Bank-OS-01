@@ -1507,7 +1507,7 @@
             </div>
             <h4 style="margin-top: 1rem;">Operating System Lifecycle State Machine</h4>
             <p>Process transitioned: <code>NEW ➔ READY ➔ RUNNING ➔ ${pcb.state}</code></p>
-            <div class="modal-code-block">Havender Monotonic Locks: Lock(Acc_${Math.min(pcb.from_account, pcb.to_account)}) &lt; Lock(Acc_${Math.max(pcb.from_account, pcb.to_account)})</div>
+            <div class="modal-code-block"><span class="syn-comment">// Havender Monotonic Resource Ordering:</span><br><span class="syn-fn">Lock</span>(<span class="syn-var">Acc_${Math.min(pcb.from_account, pcb.to_account)}</span>) <span class="syn-op">&lt;</span> <span class="syn-fn">Lock</span>(<span class="syn-var">Acc_${Math.max(pcb.from_account, pcb.to_account)}</span>)</div>
         `;
         modal.classList.add('open');
     };
@@ -1540,7 +1540,7 @@
                 <p>Transactions arrive from external banking gateways (UPI switches, ATM terminals, Corporate Payroll engines). In our engine, <strong>176,000 transactions</strong> are generated chronologically across 8,000 simulation ticks.</p>
                 <h4>2. Mathematical Workload Clustering</h4>
                 <p>75% of arrivals cluster around <strong>20 Gaussian peak centers</strong> with standard deviation <code>σ = 25 ticks</code>, while 25% follow a uniform Poisson background distribution, simulating real-world bursty bank switch traffic.</p>
-                <div class="modal-code-block">Arrival Distribution: T ~ 0.75 * N(μ_i, σ^2) + 0.25 * Uniform(0, T_max)</div>
+                <div class="modal-code-block"><span class="syn-comment">// Bimodal Traffic Model (Gaussian + Uniform)</span><br><span class="syn-type">Arrivals</span>: <span class="syn-var">T</span> <span class="syn-op">~</span> <span class="syn-num">0.75</span> <span class="syn-op">*</span> <span class="syn-fn">N</span>(<span class="syn-var">μ_i</span>, <span class="syn-var">σ²</span>) <span class="syn-op">+</span> <span class="syn-num">0.25</span> <span class="syn-op">*</span> <span class="syn-fn">Uniform</span>(<span class="syn-num">0</span>, <span class="syn-var">T_max</span>)</div>
                 <h4>3. Account Distribution</h4>
                 <p>Retail accounts (1001–1008) handle peer-to-peer UPI transfers; Corporate Treasury (2001–2002) dispatches heavy payroll salary batches; and ATM Vaults (5001–5002) service cash reserves.</p>
             `
@@ -1557,7 +1557,7 @@
                 </ul>
                 <h4>2. Anti-Starvation Aging Engine</h4>
                 <p>If a batch salary job in Queue 2 waits for <code>X ≥ 50 ticks</code> without execution, the Aging Engine promotes it to Queue 1, mathematically eliminating indefinite starvation.</p>
-                <div class="modal-code-block">Rule: If (tick - arrival_time >= X_aging) ➔ Promote PCB from Q2 to Q1</div>
+                <div class="modal-code-block"><span class="syn-comment">// Starvation Prevention Aging Rule</span><br><span class="syn-kw">if</span> (<span class="syn-var">tick</span> <span class="syn-op">-</span> <span class="syn-var">arrival_time</span> <span class="syn-op">&gt;=</span> <span class="syn-num">X_aging</span>) { <span class="syn-fn">promote_queue</span>(<span class="syn-var">PCB</span>, <span class="syn-str">"Q2 ➔ Q1"</span>); }</div>
             `
         },
         3: {
@@ -1572,7 +1572,7 @@
                 </ul>
                 <h4>2. Havender's Total Monotonic Resource Ordering</h4>
                 <p>To eliminate circular wait deadlocks (Coffman Condition 4), lock requests are sorted in strictly ascending numerical order:</p>
-                <div class="modal-code-block">Havender Invariant: Lock(Acc_i) acquired before Lock(Acc_j) &lt;==&gt; ID_i &lt; ID_j</div>
+                <div class="modal-code-block"><span class="syn-comment">// Havender Monotonic Total Ordering Theorem</span><br><span class="syn-fn">Lock</span>(<span class="syn-var">Acc_i</span>) <span class="syn-kw">before</span> <span class="syn-fn">Lock</span>(<span class="syn-var">Acc_j</span>) <span class="syn-op">&lt;==&gt;</span> <span class="syn-var">ID_i</span> <span class="syn-op">&lt;</span> <span class="syn-var">ID_j</span></div>
                 <p>Because every transaction requests locks in this exact order, a directed cycle in the Wait-For Graph (WFG) is mathematically impossible.</p>
             `
         },
@@ -1584,7 +1584,7 @@
                 <p>Transfer execution checks sender balance: <code>SELECT balance FOR UPDATE</code>. If balance is insufficient (e.g. Account 1005 with ₹300 receiving ₹1,200 debit), the entire transaction aborts with a full <strong>ROLLBACK</strong>. Both accounts remain pristine.</p>
                 <h4>2. Write-Ahead Logging (WAL)</h4>
                 <p>All state transitions are logged sequentially to the WAL stream before modifying balances:</p>
-                <div class="modal-code-block">WAL Pipeline: PREPARE ➔ DEBIT [LSN #] ➔ CREDIT [LSN #+1] ➔ COMMIT [LSN #+2]</div>
+                <div class="modal-code-block"><span class="syn-comment">// WAL Durable Append-Only Sequence</span><br><span class="syn-kw">WAL</span>: <span class="syn-type">PREPARE</span> <span class="syn-op">➔</span> <span class="syn-fn">DEBIT</span>[<span class="syn-num">LSN #i</span>] <span class="syn-op">➔</span> <span class="syn-fn">CREDIT</span>[<span class="syn-num">LSN #i+1</span>] <span class="syn-op">➔</span> <span class="syn-kw">COMMIT</span>[<span class="syn-num">LSN #i+2</span>]</div>
                 <p>In case of system failure, uncommitted transactions are rolled back using WAL undo records, ensuring full Durability.</p>
             `
         },
@@ -1596,7 +1596,7 @@
                 <p>Maintains thread-safe in-memory balances for 12 accounts with fallback to MySQL relational tables (<code>Accounts</code>, <code>Transactions</code>, <code>WriteAheadLog</code>).</p>
                 <h4>2. Global Balance Conservation Law (ACID Consistency)</h4>
                 <p>Because every successful transfer debits sender balance by ₹X and credits receiver balance by ₹X, the total money in the banking system is an absolute constant:</p>
-                <div class="modal-code-block">Invariant Theorem: ∑_{i=1}^{12} Balance_i(t) ≡ ₹12,300,400.00 ∀ t ≥ 0</div>
+                <div class="modal-code-block"><span class="syn-comment">// ACID Consistency: Global Ledger Conservation Law</span><br><span class="syn-kw">assert</span>(<span class="syn-fn">sum</span>(<span class="syn-var">Balances</span>) <span class="syn-op">===</span> <span class="syn-num">12300400.00</span>) <span class="syn-comment">// Δ ≡ ₹0.00 invariant</span></div>
                 <p>Our dashboard calculates the real-time sum across all retail, corporate, and vault accounts every tick. A non-zero delta indicates an invariant violation.</p>
             `
         }

@@ -16,9 +16,11 @@
     --text-dim: #6e7681;
 
     --color-blue: #58a6ff;
-    --color-blue-bg: rgba(234, 179, 8, 0.16);
     --color-yellow: #eab308;
     --color-yellow-bg: rgba(234, 179, 8, 0.16);
+    --color-accent: #eab308;
+    --color-accent-bg: rgba(234, 179, 8, 0.16);
+    --color-blue-bg: var(--color-accent-bg);
     --color-emerald: #2ea043;
     --color-emerald-bg: rgba(46, 160, 67, 0.14);
     --color-amber: #d29922;
@@ -27,6 +29,16 @@
     --color-rose-bg: rgba(248, 81, 73, 0.14);
     --color-purple: #bc8cff;
     --color-purple-bg: rgba(188, 140, 255, 0.14);
+
+    /* Code & Algorithm Syntax Highlighting */
+    --syn-kw: #bc8cff;
+    --syn-fn: #58a6ff;
+    --syn-var: #e6edf3;
+    --syn-num: #eab308;
+    --syn-str: #7ee787;
+    --syn-op: #f85149;
+    --syn-type: #38bdf8;
+    --syn-comment: #8b949e;
 
     --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: 'JetBrains Mono', "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -67,6 +79,27 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary);
     line-height: 1.25;
 }
+
+/* Base Code & Monospace Syntax */
+code {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: rgba(33, 38, 45, 0.7);
+    border: 1px solid var(--border-color);
+    padding: 1.5px 5.5px;
+    border-radius: var(--radius-sm);
+    color: var(--color-emerald);
+}
+
+/* Syntax Highlighting Tokens */
+.syn-kw { color: var(--syn-kw); font-weight: 700; }
+.syn-fn { color: var(--syn-fn); font-weight: 600; }
+.syn-var { color: var(--syn-var); }
+.syn-num { color: var(--syn-num); font-weight: 600; }
+.syn-str { color: var(--syn-str); }
+.syn-op { color: var(--syn-op); font-weight: 700; }
+.syn-type { color: var(--syn-type); font-weight: 600; }
+.syn-comment { color: var(--syn-comment); font-style: italic; }
 
 /* ==========================================================================
    HEADER & NAVIGATION BAR
@@ -1118,11 +1151,14 @@ input:checked + .slider:before {
 .formula-box {
     font-family: var(--font-mono);
     font-size: 11px;
-    background: var(--bg-panel);
+    font-weight: 600;
+    background: #090d13;
     border: 1px solid var(--border-color);
-    padding: 3px 6px;
+    border-left: 3px solid var(--color-emerald);
+    padding: 3px 7px;
     border-radius: var(--radius-sm);
     color: var(--color-emerald);
+    display: inline-block;
 }
 
 .acid-stat-pill {
@@ -1646,12 +1682,14 @@ input:checked + .slider:before {
     color: var(--color-emerald);
 }
 .modal-code-block {
-    background: var(--bg-page);
+    background: #090d13;
     border: 1px solid var(--border-color);
+    border-left: 3px solid var(--color-yellow);
     border-radius: var(--radius-sm);
-    padding: 0.75rem;
+    padding: 0.85rem 1rem;
     font-family: var(--font-mono);
-    font-size: 10.5px;
+    font-size: 11px;
+    line-height: 1.6;
     color: var(--text-primary);
     overflow-x: auto;
 }
